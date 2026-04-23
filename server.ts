@@ -17,7 +17,12 @@ async function startServer() {
     },
   });
 
-  const PORT = 3000;
+  const PORT = process.env.PORT || 3000;
+
+  // Add Health Check
+  app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok' });
+  });
 
   // Game Rooms Storage
   const rooms = new Map<string, { players: Player[]; gameState: GameState | null }>();
