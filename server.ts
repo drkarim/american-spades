@@ -4,7 +4,7 @@ import { Server } from 'socket.io';
 import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { Card, GameState, Player, Rank, Seat, Suit } from './src/types';
+import { Card, GameState, Player, Rank, Seat, Suit } from './src/types.ts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
