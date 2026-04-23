@@ -117,48 +117,47 @@ export default function GameBoard({ gameState, mySeat, onPlayCard, onSubmitBid, 
                 const player = gameState.players.find(p => p.seat === seat);
 
                 const posClasses = [
-                  "bottom-0 translate-y-16 flex-col-reverse", // Bottom (ME)
-                  "right-0 translate-x-12",                   // Right
-                  "top-0 -translate-y-16 flex-col",           // Top
-                  "left-0 -translate-x-12",                   // Left
-                ][index];
-
-                const statsPosClasses = [
-                  "-top-12 left-1/2 -translate-x-1/2", // Bottom player stats
-                  "right-24 top-1/2 -translate-y-1/2", // Right player stats
-                  "-bottom-12 left-1/2 -translate-x-1/2", // Top player stats
-                  "left-24 top-1/2 -translate-y-1/2", // Left player stats
+                  "bottom-0 translate-y-20", // Bottom (ME)
+                  "right-0 translate-x-16",  // Right
+                  "top-0 -translate-y-20",   // Top
+                  "left-0 -translate-x-16",  // Left
                 ][index];
 
                 return (
-                  <div key={seat} className={`absolute ${posClasses} z-10 flex items-center gap-3`}>
-                    {/* Player Info (Name Only) */}
-                    <div className="flex flex-col items-center relative">
-                      <motion.div
-                        animate={isActive ? { scale: [1, 1.1, 1], opacity: [0.6, 1, 0.6] } : {}}
-                        transition={{ repeat: Infinity, duration: 2 }}
-                        className={`text-[9px] uppercase tracking-widest font-bold flex items-center gap-1 ${isActive ? 'text-gold' : 'text-white/30'}`}
-                      >
-                        {isActive && <motion.div animate={{ x: [-2, 2, -2] }} transition={{ repeat: Infinity, duration: 1 }}><Play className="w-2 h-2 rotate-90 fill-current" /></motion.div>}
-                        {player?.name || '...'}
-                      </motion.div>
+                  <div key={seat} className={`absolute ${posClasses} z-10 flex items-center justify-center`}>
+                    <div className="relative">
+                      {/* Player Info Block */}
+                      <div className={`absolute z-30 flex flex-col pointer-events-none whitespace-nowrap ${[
+                        "bottom-full right-0 mb-4 items-end", // Bottom: Top-Right of card
+                        "left-full ml-4 items-end",          // Right (East): Beneath name, aligned right
+                        "top-full right-0 mt-4 items-end",    // Top: Bottom-Right of card
+                        "right-full mr-4 items-start"         // Left (West): Beneath name, aligned left
+                      ][index]}`}>
+                        
+                        <motion.div
+                          animate={isActive ? { scale: [1, 1.05, 1], opacity: [0.7, 1, 0.7] } : {}}
+                          transition={{ repeat: Infinity, duration: 2 }}
+                          className={`text-[10px] uppercase tracking-widest font-black flex items-center gap-1.5 mb-1 ${isActive ? 'text-gold' : 'text-white/40'}`}
+                        >
+                          {isActive && <motion.div animate={{ x: [-2, 2, -2] }} transition={{ repeat: Infinity, duration: 1 }}><Play className="w-2.5 h-2.5 rotate-90 fill-current" /></motion.div>}
+                          {player?.name || '...'}
+                        </motion.div>
 
-                      {/* Stats Block (Moved closer to center) */}
-                      <div className={`absolute ${statsPosClasses} flex items-center gap-3 px-3 py-1.5 bg-black/60 backdrop-blur-md rounded-xl border border-white/10 shadow-2xl z-30 min-w-[80px] justify-center`}>
-                        <div className="flex flex-col items-center leading-none">
-                            <span className="text-[7px] text-gold/50 uppercase font-black tracking-tighter mb-0.5">Bid</span>
-                            <span className="text-lg font-serif italic text-gold leading-none">{gameState.bids[seat] ?? '-'}</span>
-                        </div>
-                        <div className="w-[1px] h-6 bg-white/10" />
-                        <div className="flex flex-col items-center leading-none">
-                            <span className="text-[7px] text-white/30 uppercase font-black tracking-tighter mb-0.5">Won</span>
-                            <span className="text-lg font-serif italic text-white leading-none">{gameState.tricksWon[seat]}</span>
+                        <div className="flex items-center gap-2 px-2.5 py-1.5 bg-black/80 backdrop-blur-xl rounded-lg border border-white/10 shadow-2xl">
+                          <div className="flex flex-col items-center leading-none">
+                              <span className="text-[7px] text-gold/40 uppercase font-black tracking-tighter mb-0.5">Bid</span>
+                              <span className="text-lg font-serif italic text-gold leading-none">{gameState.bids[seat] ?? '-'}</span>
+                          </div>
+                          <div className="w-[1px] h-6 bg-white/10" />
+                          <div className="flex flex-col items-center leading-none">
+                              <span className="text-[7px] text-white/20 uppercase font-black tracking-tighter mb-0.5">Won</span>
+                              <span className="text-lg font-serif italic text-white leading-none">{gameState.tricksWon[seat]}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Card Spot or Card */}
-                    <AnimatePresence mode="popLayout">
+                      {/* Card Spot or Card */}
+                      <AnimatePresence mode="popLayout">
                       {trick ? (
                         <motion.div
                           key={`${trick.card.suit}-${trick.card.rank}`}
@@ -192,6 +191,7 @@ export default function GameBoard({ gameState, mySeat, onPlayCard, onSubmitBid, 
                         </div>
                       )}
                     </AnimatePresence>
+                    </div>
                   </div>
                 );
               })}
