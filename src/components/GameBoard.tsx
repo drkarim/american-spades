@@ -51,6 +51,14 @@ export default function GameBoard({ gameState, mySeat, onPlayCard, onSubmitBid, 
     return gameState.currentTrick.find(t => t.seat === seat);
   };
 
+  const getTeamNames = (team: 'NS' | 'EW') => {
+    const seats = team === 'NS' ? ['NORTH', 'SOUTH'] : ['EAST', 'WEST'];
+    return gameState.players
+      .filter(p => seats.includes(p.seat as any))
+      .map(p => p.name)
+      .join(' & ') || (team === 'NS' ? 'North & South' : 'East & West');
+  };
+
   return (
     <div className="relative w-full h-[100dvh] bg-deep-black overflow-hidden flex flex-col font-sans">
       {/* Sophisticated Header */}
@@ -124,24 +132,50 @@ export default function GameBoard({ gameState, mySeat, onPlayCard, onSubmitBid, 
                       <motion.div
                         animate={isActive ? { scale: [1, 1.1, 1], opacity: [0.6, 1, 0.6] } : {}}
                         transition={{ repeat: Infinity, duration: 2 }}
-                        className={`text-[9px] uppercase tracking-widest font-bold ${isActive ? 'text-gold' : 'text-white/30'}`}
+                        className={`text-[9px] uppercase tracking-widest font-bold flex items-center gap-1 ${isActive ? 'text-gold' : 'text-white/30'}`}
                       >
+                        {isActive && <motion.div animate={{ x: [-2, 2, -2] }} transition={{ repeat: Infinity, duration: 1 }}><Play className="w-2 h-2 rotate-90 fill-current" /></motion.div>}
                         {player?.name || '...'}
                       </motion.div>
-                      <div className="text-[8px] font-mono text-white/40 uppercase mt-0.5">
-                        {gameState.bids[seat] ?? '-'}/{gameState.tricksWon[seat]}
+                      <div className="flex items-center gap-2 mt-1 px-2 py-0.5 bg-black/40 rounded border border-white/5">
+                        <div className="flex flex-col items-center leading-none">
+                            <span className="text-[6px] text-white/30 uppercase font-bold tracking-tighter">Bid</span>
+                            <span className="text-sm font-serif italic text-gold">{gameState.bids[seat] ?? '-'}</span>
+                        </div>
+                        <div className="w-[1px] h-4 bg-white/10" />
+                        <div className="flex flex-col items-center leading-none">
+                            <span className="text-[6px] text-white/30 uppercase font-bold tracking-tighter">Won</span>
+                            <span className="text-sm font-serif italic text-white">{gameState.tricksWon[seat]}</span>
+                        </div>
                       </div>
                     </div>
 
                     {/* Card Spot or Card */}
-                    <AnimatePresence mode="wait">
+                    <AnimatePresence mode="popLayout">
                       {trick ? (
                         <motion.div
-                          key="card"
+                          key={`${trick.card.suit}-${trick.card.rank}`}
                           initial={{ scale: 0.8, opacity: 0, y: index === 0 ? 20 : (index === 2 ? -20 : 0) }}
                           animate={{ scale: 1, opacity: 1, y: 0 }}
-                          exit={{ scale: 0.8, opacity: 0 }}
-                          className="shadow-2xl"
+                          exit={() => {
+                            // Find where the winner is
+                            const winnerIndex = rotatedSeats.indexOf(gameState.turn);
+                            const targets = [
+                                { y: 200, x: 0 },   // Self
+                                { y: 0, x: 200 },   // Right
+                                { y: -200, x: 0 },  // Top
+                                { y: 0, x: -200 }   // Left
+                            ];
+                            const target = targets[winnerIndex] || { x: 0, y: 0 };
+                            return { 
+                                x: target.x, 
+                                y: target.y, 
+                                scale: 0.2, 
+                                opacity: 0,
+                                transition: { duration: 0.6, ease: "circIn" }
+                            };
+                          }}
+                          className="shadow-2xl z-20"
                         >
                           <img src={getCardImage(trick.card)} className="w-20 h-auto rounded border border-white/10" alt="card" />
                         </motion.div>
@@ -164,16 +198,22 @@ export default function GameBoard({ gameState, mySeat, onPlayCard, onSubmitBid, 
               <h2 className="text-[10px] uppercase tracking-[0.2em] text-gold mb-4">Scoreboard</h2>
               <div className="space-y-4">
                  <div className="bg-white/5 p-3 border-l-2 border-gold rounded-r-lg">
-                    <div className="flex justify-between items-end mb-1">
-                       <span className="text-xs font-semibold text-white/80">N / S</span>
-                       <span className="text-xl font-serif italic text-gold">{gameState.scores.NS.points}</span>
+                    <div className="flex flex-col mb-1">
+                       <span className="text-[10px] uppercase tracking-tighter text-gold/60 font-bold">Team 1</span>
+                       <div className="flex justify-between items-end">
+                         <span className="text-[11px] font-semibold text-white/90 truncate max-w-[120px]">{getTeamNames('NS')}</span>
+                         <span className="text-xl font-serif italic text-gold">{gameState.scores.NS.points}</span>
+                       </div>
                     </div>
                     <div className="text-[9px] text-white/40 uppercase">Bags: {gameState.scores.NS.bags} / 10</div>
                  </div>
                  <div className="bg-white/5 p-3 border-l-2 border-white/20 rounded-r-lg">
-                    <div className="flex justify-between items-end mb-1">
-                       <span className="text-xs font-semibold text-white/80">E / W</span>
-                       <span className="text-xl font-serif italic">{gameState.scores.EW.points}</span>
+                    <div className="flex flex-col mb-1">
+                       <span className="text-[10px] uppercase tracking-tighter text-white/30 font-bold">Team 2</span>
+                       <div className="flex justify-between items-end">
+                         <span className="text-[11px] font-semibold text-white/90 truncate max-w-[120px]">{getTeamNames('EW')}</span>
+                         <span className="text-xl font-serif italic">{gameState.scores.EW.points}</span>
+                       </div>
                     </div>
                     <div className="text-[9px] text-white/40 uppercase">Bags: {gameState.scores.EW.bags} / 10</div>
                  </div>
@@ -290,18 +330,24 @@ export default function GameBoard({ gameState, mySeat, onPlayCard, onSubmitBid, 
                </div>
 
                <div className="space-y-4 mb-8">
-                  <div className="flex justify-between items-center p-4 bg-white/5 rounded-2xl border-l-4 border-gold">
-                    <span className="font-bold text-gold text-lg">N / S</span>
-                    <div className="text-right">
-                       <div className="text-2xl font-serif italic">{gameState.scores.NS.points}</div>
-                       <div className="text-[9px] uppercase text-white/30 tracking-widest mt-1">Bags: {gameState.scores.NS.bags}</div>
+                  <div className="flex flex-col p-4 bg-white/5 rounded-2xl border-l-4 border-gold">
+                    <span className="text-[10px] uppercase tracking-widest text-gold/60 mb-1">Team 1</span>
+                    <div className="flex justify-between items-center">
+                        <span className="font-bold text-white text-sm truncate max-w-[150px]">{getTeamNames('NS')}</span>
+                        <div className="text-right">
+                           <div className="text-2xl font-serif italic text-gold">{gameState.scores.NS.points}</div>
+                           <div className="text-[9px] uppercase text-white/30 tracking-widest">Bags: {gameState.scores.NS.bags}</div>
+                        </div>
                     </div>
                   </div>
-                  <div className="flex justify-between items-center p-4 bg-white/5 rounded-2xl border-l-4 border-white/20">
-                    <span className="font-bold text-white/80 text-lg">E / W</span>
-                    <div className="text-right">
-                       <div className="text-2xl font-serif italic">{gameState.scores.EW.points}</div>
-                       <div className="text-[9px] uppercase text-white/30 tracking-widest mt-1">Bags: {gameState.scores.EW.bags}</div>
+                  <div className="flex flex-col p-4 bg-white/5 rounded-2xl border-l-4 border-white/20">
+                    <span className="text-[10px] uppercase tracking-widest text-white/30 mb-1">Team 2</span>
+                    <div className="flex justify-between items-center">
+                        <span className="font-bold text-white text-sm truncate max-w-[150px]">{getTeamNames('EW')}</span>
+                        <div className="text-right">
+                           <div className="text-2xl font-serif italic">{gameState.scores.EW.points}</div>
+                           <div className="text-[9px] uppercase text-white/30 tracking-widest">Bags: {gameState.scores.EW.bags}</div>
+                        </div>
                     </div>
                   </div>
                </div>
