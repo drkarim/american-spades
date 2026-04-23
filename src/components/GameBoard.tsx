@@ -41,7 +41,7 @@ export default function GameBoard({ gameState, mySeat, onPlayCard, onSubmitBid, 
 
   const myHand = mySeat ? gameState.hands[mySeat] || [] : [];
   const sortedHand = [...myHand].sort((a, b) => {
-    const suits = { 'SPADES': 0, 'HEARTS': 1, 'DIAMONDS': 2, 'CLUBS': 3 };
+    const suits = { 'SPADES': 0, 'HEARTS': 1, 'CLUBS': 2, 'DIAMONDS': 3 };
     const ranks = { 'A': 14, 'K': 13, 'Q': 12, 'J': 11, '10': 10, '9': 9, '8': 8, '7': 7, '6': 6, '5': 5, '4': 4, '3': 3, '2': 2 };
     if (suits[a.suit] !== suits[b.suit]) return suits[a.suit] - suits[b.suit];
     return ranks[b.rank] - ranks[a.rank];
@@ -117,18 +117,23 @@ export default function GameBoard({ gameState, mySeat, onPlayCard, onSubmitBid, 
                 const player = gameState.players.find(p => p.seat === seat);
 
                 const posClasses = [
-                  "bottom-0 translate-y-12 flex-col-reverse", // My card
+                  "bottom-0 translate-y-16 flex-col-reverse", // Bottom (ME)
                   "right-0 translate-x-12",                   // Right
-                  "top-0 -translate-y-12 flex-col",           // Top
+                  "top-0 -translate-y-16 flex-col",           // Top
                   "left-0 -translate-x-12",                   // Left
                 ][index];
 
-                const isVertical = index % 2 !== 0;
+                const statsPosClasses = [
+                  "-top-12 left-1/2 -translate-x-1/2", // Bottom player stats
+                  "right-24 top-1/2 -translate-y-1/2", // Right player stats
+                  "-bottom-12 left-1/2 -translate-x-1/2", // Top player stats
+                  "left-24 top-1/2 -translate-y-1/2", // Left player stats
+                ][index];
 
                 return (
                   <div key={seat} className={`absolute ${posClasses} z-10 flex items-center gap-3`}>
-                    {/* Player Info Pips */}
-                    <div className="flex flex-col items-center">
+                    {/* Player Info (Name Only) */}
+                    <div className="flex flex-col items-center relative">
                       <motion.div
                         animate={isActive ? { scale: [1, 1.1, 1], opacity: [0.6, 1, 0.6] } : {}}
                         transition={{ repeat: Infinity, duration: 2 }}
@@ -137,15 +142,17 @@ export default function GameBoard({ gameState, mySeat, onPlayCard, onSubmitBid, 
                         {isActive && <motion.div animate={{ x: [-2, 2, -2] }} transition={{ repeat: Infinity, duration: 1 }}><Play className="w-2 h-2 rotate-90 fill-current" /></motion.div>}
                         {player?.name || '...'}
                       </motion.div>
-                      <div className="flex items-center gap-2 mt-1 px-2 py-0.5 bg-black/40 rounded border border-white/5">
+
+                      {/* Stats Block (Moved closer to center) */}
+                      <div className={`absolute ${statsPosClasses} flex items-center gap-3 px-3 py-1.5 bg-black/60 backdrop-blur-md rounded-xl border border-white/10 shadow-2xl z-30 min-w-[80px] justify-center`}>
                         <div className="flex flex-col items-center leading-none">
-                            <span className="text-[6px] text-white/30 uppercase font-bold tracking-tighter">Bid</span>
-                            <span className="text-sm font-serif italic text-gold">{gameState.bids[seat] ?? '-'}</span>
+                            <span className="text-[7px] text-gold/50 uppercase font-black tracking-tighter mb-0.5">Bid</span>
+                            <span className="text-lg font-serif italic text-gold leading-none">{gameState.bids[seat] ?? '-'}</span>
                         </div>
-                        <div className="w-[1px] h-4 bg-white/10" />
+                        <div className="w-[1px] h-6 bg-white/10" />
                         <div className="flex flex-col items-center leading-none">
-                            <span className="text-[6px] text-white/30 uppercase font-bold tracking-tighter">Won</span>
-                            <span className="text-sm font-serif italic text-white">{gameState.tricksWon[seat]}</span>
+                            <span className="text-[7px] text-white/30 uppercase font-black tracking-tighter mb-0.5">Won</span>
+                            <span className="text-lg font-serif italic text-white leading-none">{gameState.tricksWon[seat]}</span>
                         </div>
                       </div>
                     </div>
