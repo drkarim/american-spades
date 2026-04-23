@@ -93,7 +93,7 @@ export default function GameBoard({ gameState, mySeat, onPlayCard, onSubmitBid, 
 
       <main className="flex-1 flex overflow-hidden">
         {/* Table Area */}
-        <div className="flex-1 relative bg-dark-green overflow-hidden">
+        <div className="flex-1 relative bg-dark-green">
           {/* Radial Felt Glow */}
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_#143d2c_0%,_#072b1d_70%)] opacity-80" />
           
@@ -101,8 +101,8 @@ export default function GameBoard({ gameState, mySeat, onPlayCard, onSubmitBid, 
           <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
 
           {/* Player Labels & Trick Area */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="relative w-full max-w-[450px] aspect-square flex items-center justify-center">
+          <div className="absolute inset-0 flex items-center justify-center p-8">
+            <div className="relative w-full max-w-[500px] aspect-square flex items-center justify-center">
               
               {/* Central Label */}
               <div className="text-center z-0 opacity-20 pointer-events-none">
@@ -229,7 +229,7 @@ export default function GameBoard({ gameState, mySeat, onPlayCard, onSubmitBid, 
       </main>
 
       {/* Player Hand (Bottom) */}
-      <footer className="relative h-48 bg-gradient-to-t from-black/90 to-transparent flex items-end justify-center pb-4 z-[40]">
+      <footer className="relative h-40 bg-gradient-to-t from-black/90 to-transparent flex items-end justify-center pb-4 z-[40]">
         <div className="relative flex justify-center items-end px-12">
           {sortedHand.map((card, index) => {
             const rotation = (index - (sortedHand.length - 1) / 2) * 4;
@@ -283,9 +283,9 @@ export default function GameBoard({ gameState, mySeat, onPlayCard, onSubmitBid, 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 z-[1000] bg-black/60 backdrop-blur flex items-center justify-center p-6"
+            className="absolute inset-0 z-[1000] bg-black/10 flex items-center justify-center p-6"
           >
-            <div className="bg-[#0a1a14] border-2 border-gold/40 p-8 rounded-[2rem] shadow-2xl w-full max-w-sm">
+            <div className="bg-[#0a1a14] border-2 border-gold/40 p-8 rounded-[2rem] shadow-2xl w-full max-w-sm mb-20">
               <h3 className="text-xl font-serif italic text-center mb-8 text-gold">Place Your Bid</h3>
               <div className="grid grid-cols-5 gap-3 mb-8">
                 {Array.from({ length: 14 }).map((_, b) => (
