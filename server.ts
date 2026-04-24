@@ -195,35 +195,61 @@ async function startServer() {
     return Math.max(1, Math.round(bid));
   };
 
+  const getPartnerSeat = (seat: Seat): Seat => {
+    if (seat === 'NORTH') return 'SOUTH';
+    if (seat === 'SOUTH') return 'NORTH';
+    if (seat === 'EAST') return 'WEST';
+    return 'EAST'; // WEST
+  };
+
+  const getTeamName = (seat: Seat): 'NS' | 'EW' => {
+    if (seat === 'NORTH' || seat === 'SOUTH') return 'NS';
+    return 'EW';
+  };
+
   const chooseBotCard = (gameState: GameState, seat: Seat): Card => {
     const hand = gameState.hands[seat];
     const leadsWith = gameState.leadsWith;
     const trick = gameState.currentTrick;
+    const partnerSeat = getPartnerSeat(seat);
+    const teamName = getTeamName(seat);
+    
+    // Team Progress
+    const teams = {
+      NS: ['NORTH' as Seat, 'SOUTH' as Seat],
+      EW: ['EAST' as Seat, 'WEST' as Seat]
+    };
+    const teamSeats = teams[teamName];
+    const teamBid = (gameState.bids[teamSeats[0]] || 0) + (gameState.bids[teamSeats[1]] || 0);
+    const teamTricks = (gameState.tricksWon[teamSeats[0]] || 0) + (gameState.tricksWon[teamSeats[1]] || 0);
+    const needsTricks = teamTricks < teamBid;
+    const atRiskOfBags = teamTricks >= teamBid;
+
+    // Calculate current winner in trick
+    const trickWinner = trick.length > 0 ? resolveTrick(trick, leadsWith!) : null;
+    const partnerWinning = trickWinner === partnerSeat;
 
     if (!leadsWith) {
       // Leading the trick
-      // Strategy: Lead high non-spades (A, K) to win tricks early. 
-      // Avoid leading spades until broken.
       const nonSpades = hand.filter(c => c.suit !== 'SPADES');
       
       if (nonSpades.length > 0) {
-        // Find high cards in non-spade suits
         const sortedNonSpades = nonSpades.sort((a, b) => getRankValue(b.rank) - getRankValue(a.rank));
-        // If we have an Ace or King, play it
-        if (getRankValue(sortedNonSpades[0].rank) >= 13) {
+        
+        if (needsTricks && getRankValue(sortedNonSpades[0].rank) >= 13) {
+          // Lead High if we need tricks
           return sortedNonSpades[0];
         }
-        // Otherwise lead a low "safe" card
+        // Lead low if we have bags or no power
         return sortedNonSpades[sortedNonSpades.length - 1];
       }
       
-      // If only spades, lead the lowest spade to minimize taking unnecessary tricks (unless we bid high)
+      // If only spades, lead the lowest spade to minimize unnecessary wins unless it's late game
       return hand.sort((a, b) => getRankValue(a.rank) - getRankValue(b.rank))[0];
     } else {
       // Must follow suit if possible
       const following = hand.filter(c => c.suit === leadsWith);
       
-      // Calculate current winner in trick
       const bestInTrick = [...trick].sort((a, b) => {
         if (a.card.suit === b.card.suit) return getRankValue(b.card.rank) - getRankValue(a.card.rank);
         if (a.card.suit === 'SPADES') return -1;
@@ -232,41 +258,49 @@ async function startServer() {
       })[0];
 
       if (following.length > 0) {
-        const sorted = following.sort((a, b) => getRankValue(a.rank) - getRankValue(b.rank));
+        const sortedDesc = following.sort((a, b) => getRankValue(b.rank) - getRankValue(a.rank));
+        const sortedAsc = [...following].sort((a, b) => getRankValue(a.rank) - getRankValue(b.rank));
         
+        // If partner is winning, play low (unless we are testing their power, but usually just play low)
+        if (partnerWinning) return sortedAsc[0];
+
         // Find if any of our cards in suit can win
         const winningCards = following.filter(c => {
-          if (bestInTrick.card.suit === 'SPADES') return false; // Already trumped
+          if (bestInTrick.card.suit === 'SPADES') return false; 
           return getRankValue(c.rank) > getRankValue(bestInTrick.card.rank);
         }).sort((a, b) => getRankValue(a.rank) - getRankValue(b.rank));
 
         if (winningCards.length > 0) {
-          // Play the lowest card that wins
-          return winningCards[0];
+          if (needsTricks) return winningCards[0]; // Lowest winner
+          if (atRiskOfBags) return sortedAsc[0]; // Play low common card to avoid winning
         }
         
-        // Can't win, play lowest
-        return sorted[0];
+        return sortedAsc[0];
       }
 
-      // Out of suit - can trump with spade
-      const spades = hand.filter(c => c.suit === 'SPADES');
-      if (spades.length > 0) {
-        // Can we win with a spade?
-        const winningSpades = spades.filter(c => {
-          if (bestInTrick.card.suit !== 'SPADES') return true;
-          return getRankValue(c.rank) > getRankValue(bestInTrick.card.rank);
-        }).sort((a, b) => getRankValue(a.rank) - getRankValue(b.rank));
+      // Out of suit
+      if (partnerWinning) {
+        // Partner is winning! Don't over-trump.
+        // Dump the highest non-spade junk to get rid of it
+        const nonSpades = hand.filter(c => c.suit !== 'SPADES').sort((a, b) => getRankValue(b.rank) - getRankValue(a.rank));
+        return nonSpades.length > 0 ? nonSpades[0] : hand.sort((a, b) => getRankValue(a.rank) - getRankValue(b.rank))[0];
+      }
 
-        if (winningSpades.length > 0) {
-          // Play lowest winning spade
-          return winningSpades[0];
+      // If we need tricks, consider trumping
+      if (needsTricks) {
+        const spades = hand.filter(c => c.suit === 'SPADES');
+        if (spades.length > 0) {
+          const winningSpades = spades.filter(c => {
+            if (bestInTrick.card.suit !== 'SPADES') return true;
+            return getRankValue(c.rank) > getRankValue(bestInTrick.card.rank);
+          }).sort((a, b) => getRankValue(a.rank) - getRankValue(b.rank));
+
+          if (winningSpades.length > 0) return winningSpades[0];
         }
       }
 
-      // Throw junk (lowest rank, non-spade)
-      const junk = hand.sort((a, b) => getRankValue(a.rank) - getRankValue(b.rank));
-      return junk[0];
+      // Throw junk (lowest rank)
+      return hand.sort((a, b) => getRankValue(a.rank) - getRankValue(b.rank))[0];
     }
   };
 
