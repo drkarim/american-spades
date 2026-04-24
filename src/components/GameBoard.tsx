@@ -239,8 +239,9 @@ export default function GameBoard({ gameState, mySeat, onPlayCard, onSubmitBid, 
       <footer className="relative h-40 bg-gradient-to-t from-black/90 to-transparent flex items-end justify-center pb-4 z-[40]">
         <div className="relative flex justify-center items-end px-12">
           {sortedHand.map((card, index) => {
-            const rotation = (index - (sortedHand.length - 1) / 2) * 4;
-            const xOffset = (index - (sortedHand.length - 1) / 2) * 15;
+            const rotation = (index - (sortedHand.length - 1) / 2) * 6;
+            const xOffset = (index - (sortedHand.length - 1) / 2) * 28;
+            const yArc = Math.pow(Math.abs(index - (sortedHand.length - 1) / 2), 2) * 1.2;
             const isValid = isMyTurn && isPlaying;
 
             return (
@@ -249,7 +250,7 @@ export default function GameBoard({ gameState, mySeat, onPlayCard, onSubmitBid, 
                 layoutId={`${card.suit}-${card.rank}`}
                 initial={{ y: 150, opacity: 0 }}
                 animate={{ 
-                  y: 0, 
+                  y: yArc, 
                   opacity: 1,
                   rotate: rotation,
                   x: xOffset,
