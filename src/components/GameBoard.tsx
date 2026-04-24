@@ -117,10 +117,10 @@ export default function GameBoard({ gameState, mySeat, onPlayCard, onSubmitBid, 
                 const player = gameState.players.find(p => p.seat === seat);
 
                 const posClasses = [
-                  "bottom-0 translate-y-20", // Bottom (ME)
-                  "right-0 translate-x-16",  // Right
-                  "top-0 -translate-y-20",   // Top
-                  "left-0 -translate-x-16",  // Left
+                  "bottom-0 translate-y-16", // Bottom (ME)
+                  "right-0 translate-x-8",   // Right
+                  "top-0 -translate-y-16",    // Top
+                  "left-0 -translate-x-8",   // Left
                 ][index];
 
                 return (
@@ -129,9 +129,9 @@ export default function GameBoard({ gameState, mySeat, onPlayCard, onSubmitBid, 
                       {/* Player Info Block */}
                       <div className={`absolute z-30 flex flex-col pointer-events-none whitespace-nowrap ${[
                         "bottom-full right-0 mb-4 items-end", // Bottom: Top-Right of card
-                        "left-full ml-4 items-end",          // Right (East): Beneath name, aligned right
+                        "right-full mr-4 items-start text-right", // Right (East): To the LEFT of card
                         "top-full right-0 mt-4 items-end",    // Top: Bottom-Right of card
-                        "right-full mr-4 items-start"         // Left (West): Beneath name, aligned left
+                        "left-full ml-4 items-end text-left"    // Left (West): To the RIGHT of card
                       ][index]}`}>
                         
                         <motion.div
@@ -237,10 +237,10 @@ export default function GameBoard({ gameState, mySeat, onPlayCard, onSubmitBid, 
 
       {/* Player Hand (Bottom) */}
       <footer className="relative h-40 bg-gradient-to-t from-black/90 to-transparent flex items-end justify-center pb-4 z-[40]">
-        <div className="relative flex justify-center items-end px-12">
+        <div className="relative flex justify-center items-end px-16">
           {sortedHand.map((card, index) => {
             // Straight line layout for better visibility and mobile support
-            const xOffset = (index - (sortedHand.length - 1) / 2) * 24; 
+            const xOffset = (index - (sortedHand.length - 1) / 2) * 20; 
             const isValid = isMyTurn && isPlaying;
 
             return (
