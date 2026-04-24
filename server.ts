@@ -118,41 +118,44 @@ async function startServer() {
     ];
 
     for (const team of teams) {
-      const teamBids = team.seats.map(s => bids[s] || 0);
-      const teamTricks = team.seats.reduce((sum, s) => sum + tricksWon[s], 0);
-      
-      // Handle Nil bids separately
-      let teamPoints = 0;
-      let teamBags = 0;
+      let roundPoints = 0;
+      let roundBags = 0;
+      let nonNilBid = 0;
+      let nonNilWon = 0;
 
-      for (let i = 0; i < 2; i++) {
-        const seat = team.seats[i];
+      for (const seat of team.seats) {
         const bid = bids[seat];
         const won = tricksWon[seat];
 
         if (bid === 0) {
-          if (won === 0) teamPoints += 100;
-          else teamPoints -= 100;
-        }
-      }
-
-      // Calculate combined bid team score
-      const combinedBid = team.seats.reduce((sum, s) => bids[s] !== 0 ? sum + (bids[s] || 0) : sum, 0);
-      const combinedWon = team.seats.reduce((sum, s) => bids[s] !== 0 ? sum + tricksWon[s] : sum, 0);
-
-      if (combinedBid > 0) {
-        if (combinedWon >= combinedBid) {
-          teamPoints += combinedBid * 10;
-          teamBags += (combinedWon - combinedBid);
+          // Nil bid processing (Independent)
+          if (won === 0) {
+            roundPoints += 100;
+          } else {
+            roundPoints -= 100;
+            roundBags += won; // Tricks taken during nil are bags
+          }
         } else {
-          teamPoints -= combinedBid * 10;
+          // Part of combined partnership bid
+          nonNilBid += (bid || 0);
+          nonNilWon += won;
         }
       }
 
-      scores[team.name].points += teamPoints;
-      scores[team.name].bags += teamBags;
+      // Handle partnership bid
+      if (nonNilBid > 0) {
+        if (nonNilWon >= nonNilBid) {
+          roundPoints += nonNilBid * 10;
+          roundBags += (nonNilWon - nonNilBid);
+        } else {
+          roundPoints -= nonNilBid * 10;
+        }
+      }
 
-      // Deduct for bags
+      scores[team.name].points += roundPoints;
+      scores[team.name].bags += roundBags;
+
+      // Handle bag penalties
       while (scores[team.name].bags >= 10) {
         scores[team.name].points -= 100;
         scores[team.name].bags -= 10;
