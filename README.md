@@ -1,20 +1,111 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# 🃏 American Spades Multiplayer
 
-# Run and deploy your AI Studio app
+A sophisticated, real-time multiplayer implementation of the classic American Spades card game. Designed for seamless play on mobile and desktop browsers with a focus on high-end interactions and professional aesthetics.
 
-This contains everything you need to run your app locally.
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![React](https://img.shields.io/badge/React-19.0-61DAFB?logo=react)
+![Socket.io](https://img.shields.io/badge/Socket.io-4.8-black?logo=socket.io)
 
-View your app in AI Studio: https://ai.studio/apps/e62686e6-9331-4e2d-8359-8593f8f92b14
+---
 
-## Run Locally
+## ✨ Key Features
 
-**Prerequisites:**  Node.js
+- **Real-time Multiplayer**: Powered by Socket.io for low-latency gameplay between 4 players.
+- **Sophisticated Design**: A "Dark Forest" themed UI with radial felt glows, high-contrast typography, and fluid animations.
+- **Team-based Scoring**: Automated score tracking including partnership bids, tricks won, and "bags" (sandbagging) management.
+- **Dynamic Card Sorting**: Intelligent hand organization (Spades → Hearts → Clubs → Diamonds) in descending order for quick strategic assessment.
+- **Immersive Animations**: 
+  - Smooth card dealing and playing transitions using `framer-motion`.
+  - Trick-winning animations that clear cards toward the winner.
+  - Active turn indicators and real-time state synchronization.
+- **Mobile Optimized**: Responsive "App-like" layout that fits perfectly on smartphones and tablets.
 
+---
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## 🚀 Tech Stack
+
+### Frontend
+- **Framework**: React 19 (Vite)
+- **Styling**: Tailwind CSS 4 (using CSS-first configuration)
+- **Animation**: motion (`motion/react`)
+- **Icons**: Lucide React
+- **Real-time**: Socket.io Client
+
+### Backend
+- **Server**: Node.js with Express
+- **Real-time**: Socket.io
+- **Runtime**: tsx (TypeScript Execution)
+
+---
+
+## 🔧 Getting Started
+
+### Prerequisites
+- Node.js (v18+)
+- npm
+
+### Installation
+1. Clone the repository
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+### Development
+Start the development server (runs both Express backend and Vite frontend via middleware):
+```bash
+npm run dev
+```
+Open `http://localhost:3000` in your browser.
+
+### Production
+Build the frontend assets and start the server in production mode:
+```bash
+npm run build
+npm start
+```
+
+---
+
+## 🃏 Game Rules (Brief)
+
+1. **Bidding**: Each player bids on how many tricks they expect to win. Partnerships (North/South and East/West) combine their bids.
+2. **Gameplay**:
+   - Spades are always trump.
+   - You must "follow suit" if possible.
+   - If you cannot follow suit, you may play a spade or any other card.
+   - Spades cannot be "led" until the suit is broken (a spade is played on a previous lead).
+3. **Scoring**:
+   - Meeting the bid = 10 pts per trick bid.
+   - Over-tricks (bags) = 1 pt each.
+   - 10 bags = -100 pts penalty.
+   - Failing to meet the bid = -10 pts per trick bid.
+
+---
+
+## 🏗️ Project Structure
+
+```text
+├── src/
+│   ├── components/
+│   │   ├── GameBoard.tsx    # Main game UI and client logic
+│   │   ├── Lobby.tsx        # Room creation and joining
+│   │   └── TrickOutcome.tsx # Scoreboard and post-trick summary
+│   ├── types.ts             # Shared TS interfaces
+│   ├── App.tsx              # Component routing
+│   └── main.tsx             # Entry point
+├── server.ts                # Express backend & Game Engine
+└── package.json             # Build and dependency manifest
+```
+
+---
+
+## 🤝 Contributing
+
+This project was built using **Google AI Studio Build**. Contributions and forks are welcome!
+
+---
+
+## 📝 License
+
+Distributed under the MIT License.
