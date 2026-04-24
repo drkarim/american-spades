@@ -97,6 +97,7 @@ async function startServer() {
     };
 
     room.gameState.hands = hands;
+    room.gameState.roundNumber = (room.gameState.roundNumber || 0) + 1;
     room.gameState.status = 'BIDDING';
     room.gameState.turn = getNextSeat(room.gameState.dealer);
     room.gameState.bids = { NORTH: null, EAST: null, SOUTH: null, WEST: null };
@@ -104,6 +105,14 @@ async function startServer() {
     room.gameState.currentTrick = [];
     room.gameState.leadsWith = null;
     room.gameState.spadesBroken = false;
+
+    // Verify hand sizes
+    const counts = Object.entries(hands).map(([s, h]) => `${s}: ${h.length}`);
+    console.log(`[Room ${roomCode}] New Round ${room.gameState.roundNumber} dealt. Hand sizes: ${counts.join(', ')}`);
+    
+    if (Object.values(hands).some(h => h.length !== 13)) {
+      console.error(`[Room ${roomCode}] CRITICAL: Invalid hand size detected during deal!`);
+    }
   };
 
   const scoreRound = (roomCode: string) => {
@@ -265,10 +274,12 @@ async function startServer() {
     const room = rooms.get(roomCode);
     if (!room || !room.gameState) return;
     
+    const scheduledRound = room.gameState.roundNumber;
+
     // Safety delay to make it feel more natural
     setTimeout(() => {
       const { gameState, players } = room;
-      if (!gameState) return;
+      if (!gameState || gameState.roundNumber !== scheduledRound) return;
       
       const currentTurn = gameState.turn;
       const botPlayer = players.find(p => p.seat === currentTurn && p.isBot);
@@ -313,7 +324,7 @@ async function startServer() {
           io.to(roomCode).emit('gameStateUpdate', gameState);
 
           setTimeout(() => {
-            if (!room.gameState) return;
+            if (!room.gameState || room.gameState.roundNumber !== scheduledRound) return;
             room.gameState.currentTrick = [];
             
             if (Object.values(room.gameState.hands).every(h => h.length === 0)) {
@@ -408,6 +419,7 @@ async function startServer() {
         tricksWon: { NORTH: 0, EAST: 0, SOUTH: 0, WEST: 0 },
         currentTrick: [],
         scores: { NS: { points: 0, bags: 0 }, EW: { points: 0, bags: 0 } },
+        roundNumber: 0,
         roundHistory: [],
       };
       room.gameState = gameState;
@@ -482,9 +494,11 @@ async function startServer() {
         room.gameState.turn = winner;
         room.gameState.leadsWith = null;
         
+        const currentRoundAtPlay = room.gameState.roundNumber;
+
         // Brief delay before clearing trick
         setTimeout(() => {
-          if (!room.gameState) return;
+          if (!room.gameState || room.gameState.roundNumber !== currentRoundAtPlay) return;
           room.gameState.currentTrick = [];
           
           if (Object.values(room.gameState.hands).every(h => h.length === 0)) {

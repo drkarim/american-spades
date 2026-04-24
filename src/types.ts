@@ -31,6 +31,7 @@ export interface GameState {
     NS: { points: number; bags: number };
     EW: { points: number; bags: number };
   };
+  roundNumber: number;
   roundHistory: any[];
 }
 
