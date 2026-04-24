@@ -17,7 +17,7 @@ async function startServer() {
     },
   });
 
-  const PORT = process.env.PORT || 3000;
+  const PORT = Number(process.env.PORT) || 3000;
 
   // Add Health Check
   app.get('/api/health', (req, res) => {
@@ -252,6 +252,10 @@ async function startServer() {
     socket.on('playCard', ({ roomCode, card }) => {
       const room = rooms.get(roomCode);
       if (!room || !room.gameState) return;
+      
+      // Guard: Don't allow playing if a trick is currently being resolved (delay period)
+      if (room.gameState.currentTrick.length >= 4) return;
+
       const player = room.players.find(p => p.id === socket.id);
       if (!player || !player.seat || room.gameState.turn !== player.seat) return;
 
@@ -307,6 +311,10 @@ async function startServer() {
       }
 
       io.to(roomCode).emit('gameStateUpdate', room.gameState);
+
+      // Sanity check: Log hand counts to verify balance
+      const handCounts = Object.entries(room.gameState.hands).map(([s, h]) => `${s}: ${h.length}`).join(', ');
+      console.log(`[Room ${roomCode}] Card played by ${seat}. Hand counts: ${handCounts}. Trick size: ${room.gameState.currentTrick.length}`);
     });
 
     socket.on('nextRound', (roomCode) => {
