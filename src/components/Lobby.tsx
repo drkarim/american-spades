@@ -40,7 +40,7 @@ export default function Lobby({ players, roomCode, onClaimSeat, onAddBot, onStar
         {/* The Card Table */}
         <div className="absolute inset-0 bg-dark-green rounded-full border-[12px] border-[#0a1a14] shadow-[inset_0_0_50px_rgba(0,0,0,0.5)] flex items-center justify-center">
            <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
-          <div className="text-white/5 text-4xl font-serif italic rotate-12 select-none uppercase tracking-tighter">Spades Royale</div>
+          <div className="text-white/5 text-4xl font-serif italic rotate-12 select-none uppercase tracking-tighter">Karim’s Clubhouse Spades</div>
         </div>
 
         {/* Seats */}

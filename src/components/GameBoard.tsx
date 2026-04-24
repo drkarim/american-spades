@@ -64,7 +64,7 @@ export default function GameBoard({ gameState, mySeat, onPlayCard, onSubmitBid, 
       {/* Sophisticated Header */}
       <header className="h-16 px-6 flex items-center justify-between border-b border-white/10 bg-[#0a1a14] z-50">
         <div className="flex items-center gap-6">
-          <h1 className="text-xl font-serif italic text-gold">Spades Royale</h1>
+          <h1 className="text-xl font-serif italic text-gold">Karim’s Clubhouse Spades</h1>
           <div className="flex items-center gap-2 bg-black/40 px-3 py-1 rounded border border-gold/30">
             <span className="text-[9px] uppercase tracking-widest text-white/50">Room Code</span>
             <span className="font-mono font-bold text-gold text-xs">{gameState.roomCode}</span>

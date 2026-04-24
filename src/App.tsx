@@ -95,7 +95,7 @@ export default function App() {
               <div className="inline-flex p-4 bg-gold/10 rounded-2xl mb-4 border border-gold/30">
                 <Trophy className="w-10 h-10 text-gold" />
               </div>
-              <h1 className="text-4xl font-serif italic text-gold tracking-tight mb-2">Spades Royale</h1>
+              <h1 className="text-4xl font-serif italic text-gold tracking-tight mb-2">Karim’s Clubhouse Spades</h1>
               <p className="text-white/40 uppercase text-[10px] tracking-[0.2em] font-medium">Classic American Multiplayer</p>
             </div>
 
