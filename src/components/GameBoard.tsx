@@ -239,9 +239,8 @@ export default function GameBoard({ gameState, mySeat, onPlayCard, onSubmitBid, 
       <footer className="relative h-40 bg-gradient-to-t from-black/90 to-transparent flex items-end justify-center pb-4 z-[40]">
         <div className="relative flex justify-center items-end px-12">
           {sortedHand.map((card, index) => {
-            const rotation = (index - (sortedHand.length - 1) / 2) * 6;
-            const xOffset = (index - (sortedHand.length - 1) / 2) * 28;
-            const yArc = Math.pow(Math.abs(index - (sortedHand.length - 1) / 2), 2) * 1.2;
+            // Straight line layout for better visibility and mobile support
+            const xOffset = (index - (sortedHand.length - 1) / 2) * 24; 
             const isValid = isMyTurn && isPlaying;
 
             return (
@@ -250,19 +249,19 @@ export default function GameBoard({ gameState, mySeat, onPlayCard, onSubmitBid, 
                 layoutId={`${card.suit}-${card.rank}`}
                 initial={{ y: 150, opacity: 0 }}
                 animate={{ 
-                  y: yArc, 
+                  y: 0, 
                   opacity: 1,
-                  rotate: rotation,
+                  rotate: 0,
                   x: xOffset,
                 }}
                 whileHover={{ 
                   y: -40, 
-                  zIndex: 50, 
-                  scale: 1.15,
-                  boxShadow: "0 0 20px rgba(197, 160, 89, 0.4)"
+                  zIndex: 100, 
+                  scale: 1.25,
+                  boxShadow: "0 0 25px rgba(197, 160, 89, 0.6)"
                 }}
                 onClick={() => isValid && onPlayCard(card)}
-                className={`absolute w-24 sm:w-28 h-auto shadow-2xl rounded-sm transition-opacity ${!isValid && isPlaying ? 'grayscale-[0.6] opacity-40' : ''}`}
+                className={`absolute w-20 sm:w-28 h-auto shadow-2xl rounded-sm transition-opacity ${!isValid && isPlaying ? 'grayscale-[0.6] opacity-40' : ''}`}
                 style={{ transformOrigin: 'bottom center' }}
               >
                 <img src={getCardImage(card)} alt="Card" className="w-full h-auto rounded border border-white/10" />
