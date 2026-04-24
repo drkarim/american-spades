@@ -606,6 +606,7 @@ async function startServer() {
       if (!room || !room.gameState) return;
       dealHands(roomCode);
       io.to(roomCode).emit('gameStateUpdate', room.gameState);
+      triggerBotAction(roomCode);
     });
 
     socket.on('disconnect', () => {
