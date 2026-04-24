@@ -128,21 +128,18 @@ async function startServer() {
         const won = tricksWon[seat];
 
         if (bid === 0) {
-          // Nil bid processing (Independent)
           if (won === 0) {
             roundPoints += 100;
           } else {
             roundPoints -= 100;
-            roundBags += won; // Tricks taken during nil are bags
+            roundBags += won;
           }
         } else {
-          // Part of combined partnership bid
           nonNilBid += (bid || 0);
           nonNilWon += won;
         }
       }
 
-      // Handle partnership bid
       if (nonNilBid > 0) {
         if (nonNilWon >= nonNilBid) {
           roundPoints += nonNilBid * 10;
@@ -155,7 +152,6 @@ async function startServer() {
       scores[team.name].points += roundPoints;
       scores[team.name].bags += roundBags;
 
-      // Handle bag penalties
       while (scores[team.name].bags >= 10) {
         scores[team.name].points -= 100;
         scores[team.name].bags -= 10;
@@ -167,6 +163,174 @@ async function startServer() {
     } else {
       room.gameState.status = 'ROUND_END';
     }
+  };
+
+  const calculateBotBid = (hand: Card[]): number => {
+    let bid = 0;
+    const spades = hand.filter(c => c.suit === 'SPADES');
+    const aces = hand.filter(c => c.rank === 'A');
+    const kings = hand.filter(c => c.rank === 'K');
+
+    bid += spades.length * 0.45;
+    bid += aces.length * 0.8;
+    bid += kings.length * 0.5;
+
+    // Adjust for long suits/short suits
+    const suitCounts = { SPADES: 0, HEARTS: 0, DIAMONDS: 0, CLUBS: 0 };
+    hand.forEach(c => suitCounts[c.suit]++);
+    Object.values(suitCounts).forEach(count => {
+      if (count === 0) bid += 1; // Void
+      if (count === 1) bid += 0.5; // Singleton
+    });
+
+    return Math.max(1, Math.round(bid));
+  };
+
+  const chooseBotCard = (gameState: GameState, seat: Seat): Card => {
+    const hand = gameState.hands[seat];
+    const leadsWith = gameState.leadsWith;
+    const trick = gameState.currentTrick;
+
+    if (!leadsWith) {
+      // Leading the trick
+      // Strategy: Lead high non-spades (A, K) to win tricks early. 
+      // Avoid leading spades until broken.
+      const nonSpades = hand.filter(c => c.suit !== 'SPADES');
+      
+      if (nonSpades.length > 0) {
+        // Find high cards in non-spade suits
+        const sortedNonSpades = nonSpades.sort((a, b) => getRankValue(b.rank) - getRankValue(a.rank));
+        // If we have an Ace or King, play it
+        if (getRankValue(sortedNonSpades[0].rank) >= 13) {
+          return sortedNonSpades[0];
+        }
+        // Otherwise lead a low "safe" card
+        return sortedNonSpades[sortedNonSpades.length - 1];
+      }
+      
+      // If only spades, lead the lowest spade to minimize taking unnecessary tricks (unless we bid high)
+      return hand.sort((a, b) => getRankValue(a.rank) - getRankValue(b.rank))[0];
+    } else {
+      // Must follow suit if possible
+      const following = hand.filter(c => c.suit === leadsWith);
+      
+      // Calculate current winner in trick
+      const bestInTrick = [...trick].sort((a, b) => {
+        if (a.card.suit === b.card.suit) return getRankValue(b.card.rank) - getRankValue(a.card.rank);
+        if (a.card.suit === 'SPADES') return -1;
+        if (b.card.suit === 'SPADES') return 1;
+        return 0;
+      })[0];
+
+      if (following.length > 0) {
+        const sorted = following.sort((a, b) => getRankValue(a.rank) - getRankValue(b.rank));
+        
+        // Find if any of our cards in suit can win
+        const winningCards = following.filter(c => {
+          if (bestInTrick.card.suit === 'SPADES') return false; // Already trumped
+          return getRankValue(c.rank) > getRankValue(bestInTrick.card.rank);
+        }).sort((a, b) => getRankValue(a.rank) - getRankValue(b.rank));
+
+        if (winningCards.length > 0) {
+          // Play the lowest card that wins
+          return winningCards[0];
+        }
+        
+        // Can't win, play lowest
+        return sorted[0];
+      }
+
+      // Out of suit - can trump with spade
+      const spades = hand.filter(c => c.suit === 'SPADES');
+      if (spades.length > 0) {
+        // Can we win with a spade?
+        const winningSpades = spades.filter(c => {
+          if (bestInTrick.card.suit !== 'SPADES') return true;
+          return getRankValue(c.rank) > getRankValue(bestInTrick.card.rank);
+        }).sort((a, b) => getRankValue(a.rank) - getRankValue(b.rank));
+
+        if (winningSpades.length > 0) {
+          // Play lowest winning spade
+          return winningSpades[0];
+        }
+      }
+
+      // Throw junk (lowest rank, non-spade)
+      const junk = hand.sort((a, b) => getRankValue(a.rank) - getRankValue(b.rank));
+      return junk[0];
+    }
+  };
+
+  const triggerBotAction = (roomCode: string) => {
+    const room = rooms.get(roomCode);
+    if (!room || !room.gameState) return;
+    
+    // Safety delay to make it feel more natural
+    setTimeout(() => {
+      const { gameState, players } = room;
+      if (!gameState) return;
+      
+      const currentTurn = gameState.turn;
+      const botPlayer = players.find(p => p.seat === currentTurn && p.isBot);
+      
+      if (!botPlayer) return;
+
+      if (gameState.status === 'BIDDING') {
+        const bid = calculateBotBid(gameState.hands[currentTurn]);
+        gameState.bids[currentTurn] = bid;
+        const next = getNextSeat(currentTurn);
+        
+        if (Object.values(gameState.bids).every(b => b !== null)) {
+          gameState.status = 'PLAYING';
+          gameState.turn = getNextSeat(gameState.dealer);
+        } else {
+          gameState.turn = next;
+        }
+        io.to(roomCode).emit('gameStateUpdate', gameState);
+        triggerBotAction(roomCode);
+      } else if (gameState.status === 'PLAYING') {
+        // Prevent playing if trick is full
+        if (gameState.currentTrick.length >= 4) return;
+
+        const card = chooseBotCard(gameState, currentTurn);
+        const hand = gameState.hands[currentTurn];
+        const cardIndex = hand.findIndex(c => c.suit === card.suit && c.rank === card.rank);
+        
+        if (cardIndex === -1) return;
+
+        gameState.hands[currentTurn].splice(cardIndex, 1);
+        gameState.currentTrick.push({ seat: currentTurn, card });
+        
+        if (!gameState.leadsWith) gameState.leadsWith = card.suit;
+        if (card.suit === 'SPADES') gameState.spadesBroken = true;
+
+        if (gameState.currentTrick.length === 4) {
+          const winner = resolveTrick(gameState.currentTrick, gameState.leadsWith);
+          gameState.tricksWon[winner]++;
+          gameState.turn = winner;
+          gameState.leadsWith = null;
+          
+          io.to(roomCode).emit('gameStateUpdate', gameState);
+
+          setTimeout(() => {
+            if (!room.gameState) return;
+            room.gameState.currentTrick = [];
+            
+            if (Object.values(room.gameState.hands).every(h => h.length === 0)) {
+              scoreRound(roomCode);
+              room.gameState.dealer = getNextSeat(room.gameState.dealer);
+            }
+            
+            io.to(roomCode).emit('gameStateUpdate', room.gameState);
+            triggerBotAction(roomCode);
+          }, 1500);
+        } else {
+          gameState.turn = getNextSeat(currentTurn);
+          io.to(roomCode).emit('gameStateUpdate', gameState);
+          triggerBotAction(roomCode);
+        }
+      }
+    }, 1000);
   };
 
   // Socket logic
@@ -210,6 +374,23 @@ async function startServer() {
       io.to(roomCode).emit('roomJoined', { roomCode, players: room.players, gameState: room.gameState });
     });
 
+    socket.on('addBot', ({ roomCode, seat }) => {
+      const room = rooms.get(roomCode);
+      if (!room) return;
+      if (room.players.length >= 4) return;
+      if (room.players.some(p => p.seat === seat)) return;
+
+      const botId = `bot-${Math.random().toString(36).substring(7)}`;
+      const botPlayer: Player = {
+        id: botId,
+        name: `Bot ${seat.charAt(0) + seat.slice(1).toLowerCase()}`,
+        seat,
+        isBot: true
+      };
+      room.players.push(botPlayer);
+      io.to(roomCode).emit('roomJoined', { roomCode, players: room.players, gameState: room.gameState });
+    });
+
     socket.on('startGame', (roomCode) => {
       const room = rooms.get(roomCode);
       if (!room || room.players.length !== 4 || room.players.some(p => !p.seat)) return;
@@ -232,6 +413,9 @@ async function startServer() {
       room.gameState = gameState;
       dealHands(roomCode);
       io.to(roomCode).emit('gameStateUpdate', room.gameState);
+      
+      // Check if first turn is a bot
+      triggerBotAction(roomCode);
     });
 
     socket.on('submitBid', ({ roomCode, bid }) => {
@@ -250,6 +434,7 @@ async function startServer() {
         room.gameState.turn = next;
       }
       io.to(roomCode).emit('gameStateUpdate', room.gameState);
+      triggerBotAction(roomCode);
     });
 
     socket.on('playCard', ({ roomCode, card }) => {
@@ -308,9 +493,11 @@ async function startServer() {
           }
           
           io.to(roomCode).emit('gameStateUpdate', room.gameState);
+          triggerBotAction(roomCode);
         }, 1500);
       } else {
         room.gameState.turn = getNextSeat(seat);
+        triggerBotAction(roomCode);
       }
 
       io.to(roomCode).emit('gameStateUpdate', room.gameState);

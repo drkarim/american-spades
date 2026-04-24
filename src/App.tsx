@@ -71,6 +71,11 @@ export default function App() {
     socket.emit('startGame', currentRoom);
   };
 
+  const addBot = (seat: Seat) => {
+    if (!currentRoom) return;
+    socket.emit('addBot', { roomCode: currentRoom, seat });
+  };
+
   if (view === 'SANDBOX') {
     return <Sandbox onBack={() => setView('HOME')} />;
   }
@@ -166,6 +171,7 @@ export default function App() {
             players={players}
             roomCode={currentRoom || ''}
             onClaimSeat={claimSeat}
+            onAddBot={addBot}
             onStartGame={startGame}
             myId={socket.id}
           />

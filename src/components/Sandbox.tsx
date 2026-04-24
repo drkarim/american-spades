@@ -163,6 +163,7 @@ export default function Sandbox({ onBack }: SandboxProps) {
               players={activeState.players}
               roomCode={roomCode || ''}
               onClaimSeat={() => {}} // Auto handled in sandbox
+              onAddBot={() => {}} // Bots not used in sandbox simulation mode
               onStartGame={handleStartGame}
               myId={activeState.socketId || ''}
             />

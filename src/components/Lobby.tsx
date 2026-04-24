@@ -1,18 +1,19 @@
 import { Player, Seat } from '../types';
 import { motion } from 'motion/react';
-import { User, Shield, Share2 } from 'lucide-react';
+import { User, Shield, Share2, Bot } from 'lucide-react';
 
 interface LobbyProps {
   players: Player[];
   roomCode: string;
   onClaimSeat: (seat: Seat) => void;
+  onAddBot: (seat: Seat) => void;
   onStartGame: () => void;
   myId: string | undefined;
 }
 
 const SEATS: Seat[] = ['NORTH', 'SOUTH', 'EAST', 'WEST'];
 
-export default function Lobby({ players, roomCode, onClaimSeat, onStartGame, myId }: LobbyProps) {
+export default function Lobby({ players, roomCode, onClaimSeat, onAddBot, onStartGame, myId }: LobbyProps) {
   const getPlayerAtSeat = (seat: Seat) => players.find(p => p.seat === seat);
   
   const allSeatsFilled = players.length === 4 && SEATS.every(s => players.some(p => p.seat === s));
@@ -56,33 +57,45 @@ export default function Lobby({ players, roomCode, onClaimSeat, onStartGame, myI
             <motion.div
               key={seat}
               className={`absolute ${posClasses} z-10 flex flex-col items-center gap-2`}
-              whileHover={!player ? { scale: 1.05 } : {}}
+              whileHover={!player ? { scale: 1.02 } : {}}
             >
               <div className="text-[10px] font-bold tracking-[0.2em] text-gold opacity-50 mb-1">{seat}</div>
-              <button
-                onClick={() => !player && onClaimSeat(seat)}
-                disabled={!!player}
-                className={`w-24 h-24 rounded-2xl border-2 flex flex-col items-center justify-center gap-2 transition-all shadow-2xl overflow-hidden
-                  ${player 
-                    ? 'bg-[#0a1a14] border-gold/50 text-white' 
-                    : 'bg-black/60 border-white/10 hover:border-gold/50 text-white/40 cursor-pointer'
-                  }`}
-              >
-                {player ? (
-                  <>
-                    <div className="w-10 h-10 bg-gold/10 rounded-full flex items-center justify-center">
-                      <User className="w-6 h-6 text-gold" />
-                    </div>
-                    <span className="text-xs font-bold truncate max-w-full px-2">{player.name}</span>
-                    {player.id === myId && <span className="text-[8px] bg-gold text-black px-1 rounded font-bold uppercase">You</span>}
-                  </>
-                ) : (
-                  <>
-                    <Shield className="w-8 h-8 opacity-20" />
-                    <span className="text-[9px] font-bold uppercase tracking-widest opacity-50">Reserve</span>
-                  </>
+              <div className="relative">
+                <button
+                  onClick={() => !player && onClaimSeat(seat)}
+                  disabled={!!player}
+                  className={`w-24 h-24 rounded-2xl border-2 flex flex-col items-center justify-center gap-2 transition-all shadow-2xl overflow-hidden
+                    ${player 
+                      ? 'bg-[#0a1a14] border-gold/50 text-white' 
+                      : 'bg-black/60 border-white/10 hover:border-gold/50 text-white/40 cursor-pointer'
+                    }`}
+                >
+                  {player ? (
+                    <>
+                      <div className="w-10 h-10 bg-gold/10 rounded-full flex items-center justify-center">
+                        {player.isBot ? <Bot className="w-6 h-6 text-gold" /> : <User className="w-6 h-6 text-gold" />}
+                      </div>
+                      <span className="text-xs font-bold truncate max-w-full px-2">{player.name}</span>
+                      {player.id === myId && <span className="text-[8px] bg-gold text-black px-1 rounded font-bold uppercase">You</span>}
+                    </>
+                  ) : (
+                    <>
+                      <Shield className="w-8 h-8 opacity-20" />
+                      <span className="text-[9px] font-bold uppercase tracking-widest opacity-50">Reserve</span>
+                    </>
+                  )}
+                </button>
+                
+                {!player && isCreator && (
+                  <button
+                    onClick={() => onAddBot(seat)}
+                    className="absolute -bottom-2 -right-2 bg-gold hover:bg-gold/90 text-black p-1.5 rounded-full shadow-lg transition-transform active:scale-95 border border-black/20"
+                    title="Add Bot"
+                  >
+                    <Bot className="w-4 h-4" />
+                  </button>
                 )}
-              </button>
+              </div>
             </motion.div>
           );
         })}
@@ -96,7 +109,7 @@ export default function Lobby({ players, roomCode, onClaimSeat, onStartGame, myI
               <div key={p.id} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
                 <div className="flex items-center gap-3">
                   <div className={`w-1.5 h-1.5 rounded-full ${p.seat ? 'bg-gold shadow-[0_0_8px_#c5a059]' : 'bg-white/20'}`} />
-                  <span className="font-medium text-sm text-white/80">{p.name}</span>
+                  <span className="font-medium text-sm text-white/80">{p.name} {p.isBot && "(Bot)"}</span>
                 </div>
                 {p.seat ? (
                    <span className="text-[9px] font-bold text-gold bg-gold/10 px-2 py-1 rounded-lg uppercase tracking-widest border border-gold/20">{p.seat}</span>

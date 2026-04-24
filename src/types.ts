@@ -9,9 +9,10 @@ export interface Card {
 export type Seat = 'NORTH' | 'SOUTH' | 'EAST' | 'WEST';
 
 export interface Player {
-  id: string; // Socket ID
+  id: string; // Socket ID or "bot-X"
   name: string;
   seat: Seat | null;
+  isBot?: boolean;
 }
 
 export interface GameState {
