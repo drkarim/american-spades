@@ -1,4 +1,4 @@
-# 🃏 American Spades Multiplayer
+# 🃏 Karim’s Clubhouse Spades
 
 A sophisticated, real-time multiplayer implementation of the classic American Spades card game. Designed for seamless play on mobile and desktop browsers with a focus on high-end interactions and professional aesthetics.
 
@@ -14,11 +14,32 @@ A sophisticated, real-time multiplayer implementation of the classic American Sp
 - **Sophisticated Design**: A "Dark Forest" themed UI with radial felt glows, high-contrast typography, and fluid animations.
 - **Team-based Scoring**: Automated score tracking including partnership bids, tricks won, and "bags" (sandbagging) management.
 - **Dynamic Card Sorting**: Intelligent hand organization (Spades → Hearts → Clubs → Diamonds) in descending order for quick strategic assessment.
+- **Bot Support**: Fill empty seats with intelligent AI players that understand complex bidding and gameplay strategies.
 - **Immersive Animations**: 
   - Smooth card dealing and playing transitions using `framer-motion`.
   - Trick-winning animations that clear cards toward the winner.
   - Active turn indicators and real-time state synchronization.
 - **Mobile Optimized**: Responsive "App-like" layout that fits perfectly on smartphones and tablets.
+
+---
+
+## 🤖 Bot Intelligence
+
+The game features built-in AI bots that simulate human-like decision-making. You can add bots to any empty seat in the lobby.
+
+### Bidding Strategy
+Bots evaluate their hand strength using a weighted scoring system:
+- **Spade Power**: Length of spade suit contributes to a base bid.
+- **High Cards**: Aces and Kings add significant win probability.
+- **Suit Distribution**: Bots recognize the value of "voids" and "singletons" which allow early trumping.
+- **Minimums**: Bots always bid at least 1 trick (unless they detect a rare Nil opportunity).
+
+### Gameplay Logic
+The AI adapts its strategy based on the current game state:
+- **Nil Awareness**: Bots play defensively to protect a Nil partner (leading high to clear paths) or aggressively to "set" a Nil opponent (leading low to force them to win).
+- **Bag Management**: If a team has met its bid and is at risk of "sandbagging," the bot will prioritize discarding high cards and losing tricks.
+- **Trump Control**: Bots hold back high spades (the boss cards) until necessary to win critical tricks or follow suit.
+- **Follow Suit Discipline**: Strict adherence to following suit while balancing the need to win the trick versus saving power for later.
 
 ---
 
