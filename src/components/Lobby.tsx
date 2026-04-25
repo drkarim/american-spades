@@ -38,9 +38,26 @@ export default function Lobby({ players, roomCode, onClaimSeat, onAddBot, onStar
 
       <div className="relative w-full aspect-square max-w-[320px] sm:max-w-[400px]">
         {/* The Card Table */}
-        <div className="absolute inset-0 bg-dark-green rounded-full border-[12px] border-[#0a1a14] shadow-[inset_0_0_50px_rgba(0,0,0,0.5)] flex items-center justify-center">
+        <div className="absolute inset-0 bg-dark-green rounded-full border-[12px] border-[#0a1a14] shadow-[inset_0_0_50px_rgba(0,0,0,0.5)] flex flex-col items-center justify-center">
            <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
           <div className="text-white/5 text-4xl font-serif italic rotate-12 select-none uppercase tracking-tighter">Karim’s Clubhouse Spades</div>
+          
+          {allSeatsFilled && isCreator && (
+            <motion.button
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              onClick={onStartGame}
+              className="relative z-50 bg-gold hover:bg-gold/90 text-black px-8 py-4 rounded-xl font-bold text-base transition-all shadow-xl shadow-gold/20 uppercase tracking-[0.2em] active:scale-95"
+            >
+              Start Royale
+            </motion.button>
+          )}
+
+          {allSeatsFilled && !isCreator && (
+             <p className="relative z-50 text-gold text-xs font-bold uppercase tracking-widest animate-pulse drop-shadow-lg bg-black/40 px-4 py-2 rounded-lg border border-gold/20">
+               Waiting for Host
+             </p>
+          )}
         </div>
 
         {/* Seats */}
@@ -120,21 +137,6 @@ export default function Lobby({ players, roomCode, onClaimSeat, onAddBot, onStar
             ))}
           </div>
         </div>
-
-        {allSeatsFilled && isCreator && (
-          <motion.button
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            onClick={onStartGame}
-            className="w-full bg-gold hover:bg-gold/90 text-black py-5 rounded-2xl font-bold text-lg transition-all shadow-xl shadow-gold/20 uppercase tracking-[0.2em]"
-          >
-            Start Royale
-          </motion.button>
-        )}
-        
-        {allSeatsFilled && !isCreator && (
-           <p className="text-center text-gold/40 text-[10px] uppercase tracking-widest animate-pulse">Waiting for host...</p>
-        )}
       </div>
     </motion.div>
   );
