@@ -18,14 +18,7 @@ export default function GameBoard({ gameState, mySeat, onPlayCard, onSubmitBid, 
   const [selectedBid, setSelectedBid] = useState<number | null>(null);
   const [showScoreSummary, setShowScoreSummary] = useState(false);
   const [showLastTrick, setShowLastTrick] = useState(false);
-
-  useEffect(() => {
-    if (gameState.status === 'ROUND_END') {
-      setShowScoreSummary(true);
-    } else {
-      setShowScoreSummary(false);
-    }
-  }, [gameState.status]);
+  const [focusedCard, setFocusedCard] = useState<string | null>(null);
 
   const rotatedSeats = React.useMemo(() => {
     const startIndex = SEAT_ORDER.indexOf(mySeat || 'SOUTH');
@@ -39,6 +32,31 @@ export default function GameBoard({ gameState, mySeat, onPlayCard, onSubmitBid, 
   const isMyTurn = gameState.turn === mySeat;
   const isBidding = gameState.status === 'BIDDING';
   const isPlaying = gameState.status === 'PLAYING';
+
+  useEffect(() => {
+    if (gameState.status === 'ROUND_END' || !isMyTurn) {
+      setFocusedCard(null);
+    }
+  }, [gameState.status, isMyTurn]);
+
+  const handleCardClick = (card: Card) => {
+    if (!isMyTurn || !isPlaying) return;
+    
+    const cardId = `${card.suit}-${card.rank}`;
+    
+    // On mobile (narrow screen), we use a two-tap system: first to select/preview, second to play
+    if (window.innerWidth < 640) {
+      if (focusedCard === cardId) {
+        onPlayCard(card);
+        setFocusedCard(null);
+      } else {
+        setFocusedCard(cardId);
+      }
+    } else {
+      // On desktop, we still use hover for preview, so one click is fine
+      onPlayCard(card);
+    }
+  };
 
   const myHand = mySeat ? gameState.hands[mySeat] || [] : [];
   const sortedHand = [...myHand].sort((a, b) => {
@@ -248,20 +266,25 @@ export default function GameBoard({ gameState, mySeat, onPlayCard, onSubmitBid, 
       <footer className="relative h-40 bg-gradient-to-t from-black/90 to-transparent flex items-end justify-center pb-4 z-[40]">
         <div className="relative flex justify-center items-end px-4">
           {sortedHand.map((card, index) => {
+            const cardId = `${card.suit}-${card.rank}`;
+            const isFocused = focusedCard === cardId;
             // Straight line layout for better visibility and mobile support
             const xOffset = (index - (sortedHand.length - 1) / 2) * 18; 
             const isValid = isMyTurn && isPlaying;
 
             return (
               <motion.button
-                key={`${card.suit}-${card.rank}`}
-                layoutId={`${card.suit}-${card.rank}`}
+                key={cardId}
+                layoutId={cardId}
                 initial={{ y: 150, opacity: 0 }}
                 animate={{ 
-                  y: 0, 
+                  y: isFocused ? -40 : 0, 
                   opacity: 1,
                   rotate: 0,
                   x: xOffset,
+                  scale: isFocused ? 1.25 : 1,
+                  zIndex: isFocused ? 100 : index,
+                  boxShadow: isFocused ? "0 0 25px rgba(197, 160, 89, 0.6)" : "none"
                 }}
                 whileHover={{ 
                   y: -40, 
@@ -269,7 +292,7 @@ export default function GameBoard({ gameState, mySeat, onPlayCard, onSubmitBid, 
                   scale: 1.25,
                   boxShadow: "0 0 25px rgba(197, 160, 89, 0.6)"
                 }}
-                onClick={() => isValid && onPlayCard(card)}
+                onClick={() => handleCardClick(card)}
                 className={`absolute w-20 sm:w-28 h-auto shadow-2xl rounded-sm transition-opacity ${!isValid && isPlaying ? 'grayscale-[0.6] opacity-40' : ''}`}
                 style={{ transformOrigin: 'bottom center' }}
               >
