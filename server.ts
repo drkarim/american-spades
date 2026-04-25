@@ -103,6 +103,7 @@ async function startServer() {
     room.gameState.bids = { NORTH: null, EAST: null, SOUTH: null, WEST: null };
     room.gameState.tricksWon = { NORTH: 0, EAST: 0, SOUTH: 0, WEST: 0 };
     room.gameState.currentTrick = [];
+    room.gameState.lastTrick = null;
     room.gameState.leadsWith = null;
     room.gameState.spadesBroken = false;
 
@@ -175,8 +176,41 @@ async function startServer() {
   };
 
   const calculateBotBid = (hand: Card[]): number => {
-    let bid = 0;
+    // Strategies for Nil bidding
     const spades = hand.filter(c => c.suit === 'SPADES');
+    const hearts = hand.filter(c => c.suit === 'HEARTS');
+    const diamonds = hand.filter(c => c.suit === 'DIAMONDS');
+    const clubs = hand.filter(c => c.suit === 'CLUBS');
+
+    // Strategy 1: "Soft" Nil check
+    // Low cards (9 or lower) outside Spades, minimal high Spades (8 or lower)
+    const hasHighNonSpades = hand.some(c => c.suit !== 'SPADES' && getRankValue(c.rank) > 9);
+    const hasHighSpades = spades.some(c => getRankValue(c.rank) > 8);
+    const softNilOpportunity = !hasHighNonSpades && !hasHighSpades;
+
+    // Strategy 2: "Rigorous" Nil threshold
+    // No more than 3 spades. In each suit, bottom 3 cards are <= 5, 8, 10
+    const rigorouslyLowSuit = (suitCards: Card[]): boolean => {
+      if (suitCards.length === 0) return true;
+      const sortedValues = suitCards.map(c => getRankValue(c.rank)).sort((a, b) => a - b);
+      if (sortedValues[0] > 5) return false;
+      if (sortedValues.length > 1 && sortedValues[1] > 8) return false;
+      if (sortedValues.length > 2 && sortedValues[2] > 10) return false;
+      return true;
+    };
+
+    const rigorousNilOpportunity = 
+      spades.length <= 3 &&
+      rigorouslyLowSuit(spades) &&
+      rigorouslyLowSuit(hearts) &&
+      rigorouslyLowSuit(diamonds) &&
+      rigorouslyLowSuit(clubs);
+
+    if (softNilOpportunity || rigorousNilOpportunity) {
+      return 0; // Bid Nil
+    }
+
+    let bid = 0;
     const aces = hand.filter(c => c.rank === 'A');
     const kings = hand.filter(c => c.rank === 'K');
 
@@ -224,6 +258,17 @@ async function startServer() {
     const teamTricks = (gameState.tricksWon[teamSeats[0]] || 0) + (gameState.tricksWon[teamSeats[1]] || 0);
     const needsTricks = teamTricks < teamBid;
     const atRiskOfBags = teamTricks >= teamBid;
+    
+    // Personal Progress
+    const myBid = gameState.bids[seat] || 0;
+    const myTricks = gameState.tricksWon[seat] || 0;
+    const iNeedTricks = myTricks < myBid;
+
+    // Bag & Bid context
+    const teamBags = gameState.scores[teamName].bags;
+    const isBagProne = teamBags >= 7 && teamBags <= 9;
+    const totalBid = Object.values(gameState.bids).reduce((acc: number, b) => acc + (b || 0), 0);
+    const isOverbid = totalBid > 13;
 
     // Nil Context
     const isPartnerNil = gameState.bids[partnerSeat] === 0;
@@ -259,6 +304,18 @@ async function startServer() {
         // Strategy 2: Attack Nil Opponent
         if (isOpponentNil) {
           // Play low to force them to win
+          return sortedAsc[0];
+        }
+
+        // Strategy: Overbid protection
+        if (isOverbid && iNeedTricks) {
+          // Table is overbid, prioritize hitting my own bid
+          if (getRankValue(sortedDesc[0].rank) >= 11) return sortedDesc[0];
+        }
+
+        // Strategy: Bag avoidance
+        if (isBagProne && atRiskOfBags) {
+          // We have high bags (7-9) and already met our team bid, avoid winning more
           return sortedAsc[0];
         }
 
@@ -319,7 +376,15 @@ async function startServer() {
         }).sort((a, b) => getRankValue(a.rank) - getRankValue(b.rank));
 
         if (winningCards.length > 0) {
+          // Overbid: if I need tricks, take it even if partner wins? 
+          // Usually partner winning is good, but if overbid, I take what I can if I still need mine.
+          if (isOverbid && iNeedTricks && !partnerWinning) return winningCards[0];
+
           if (needsTricks) return winningCards[0]; // Lowest winner
+          
+          // Bag avoidance: if we have 7-9 bags and met bid, avoid winning
+          if (atRiskOfBags && isBagProne) return sortedAsc[0];
+
           if (atRiskOfBags) return sortedAsc[0]; // Play low common card to avoid winning
         }
         
@@ -427,6 +492,7 @@ async function startServer() {
 
           setTimeout(() => {
             if (!room.gameState || room.gameState.roundNumber !== scheduledRound) return;
+            room.gameState.lastTrick = [...room.gameState.currentTrick];
             room.gameState.currentTrick = [];
             
             if (Object.values(room.gameState.hands).every(h => h.length === 0)) {
@@ -520,6 +586,7 @@ async function startServer() {
         bids: { NORTH: null, EAST: null, SOUTH: null, WEST: null },
         tricksWon: { NORTH: 0, EAST: 0, SOUTH: 0, WEST: 0 },
         currentTrick: [],
+        lastTrick: null,
         scores: { NS: { points: 0, bags: 0 }, EW: { points: 0, bags: 0 } },
         roundNumber: 0,
         roundHistory: [],
@@ -601,6 +668,7 @@ async function startServer() {
         // Brief delay before clearing trick
         setTimeout(() => {
           if (!room.gameState || room.gameState.roundNumber !== currentRoundAtPlay) return;
+          room.gameState.lastTrick = [...room.gameState.currentTrick];
           room.gameState.currentTrick = [];
           
           if (Object.values(room.gameState.hands).every(h => h.length === 0)) {

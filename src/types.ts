@@ -27,6 +27,7 @@ export interface GameState {
   bids: Record<Seat, number | null>;
   tricksWon: Record<Seat, number>;
   currentTrick: { seat: Seat; card: Card }[];
+  lastTrick: { seat: Seat; card: Card }[] | null;
   scores: {
     NS: { points: number; bags: number };
     EW: { points: number; bags: number };

@@ -17,6 +17,7 @@ const SEAT_ORDER: Seat[] = ['NORTH', 'EAST', 'SOUTH', 'WEST'];
 export default function GameBoard({ gameState, mySeat, onPlayCard, onSubmitBid, onNextRound }: GameBoardProps) {
   const [selectedBid, setSelectedBid] = useState<number | null>(null);
   const [showScoreSummary, setShowScoreSummary] = useState(false);
+  const [showLastTrick, setShowLastTrick] = useState(false);
 
   useEffect(() => {
     if (gameState.status === 'ROUND_END') {
@@ -85,6 +86,14 @@ export default function GameBoard({ gameState, mySeat, onPlayCard, onSubmitBid, 
               </motion.div>
             )}
           </AnimatePresence>
+          <button 
+            onClick={() => setShowLastTrick(true)} 
+            disabled={!gameState.lastTrick}
+            className="p-2 border border-white/20 rounded hover:bg-white/5 transition-colors disabled:opacity-20"
+            title="Review Last Trick"
+          >
+            <Eye className="w-4 h-4 text-white/60" />
+          </button>
           <button onClick={() => setShowScoreSummary(true)} className="p-2 border border-white/20 rounded hover:bg-white/5 transition-colors">
             <Info className="w-4 h-4 text-white/60" />
           </button>
@@ -319,6 +328,42 @@ export default function GameBoard({ gameState, mySeat, onPlayCard, onSubmitBid, 
 
       {/* Score Summary Modal */}
       <AnimatePresence>
+        {showLastTrick && gameState.lastTrick && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowLastTrick(false)}
+            className="absolute inset-0 z-[1500] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              className="bg-[#0a1a14] w-full max-w-[280px] rounded-[2rem] border-2 border-gold/30 p-6 shadow-2xl relative"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-sm font-serif italic text-center mb-6 text-gold uppercase tracking-[0.2em]">Previous Trick</h3>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-6">
+                {gameState.lastTrick.map((t, i) => {
+                   const p = gameState.players.find(pl => pl.seat === t.seat);
+                   return (
+                     <div key={i} className="flex flex-col items-center gap-1.5">
+                       <span className="text-[8px] uppercase text-white/40 font-black tracking-widest truncate w-full text-center">{p?.name || t.seat}</span>
+                       <img src={getCardImage(t.card)} className="w-[70px] h-auto rounded border border-white/10 shadow-xl" alt="card" />
+                     </div>
+                   );
+                })}
+              </div>
+              <button 
+                onClick={() => setShowLastTrick(false)}
+                className="mt-8 w-full py-3 bg-white/5 border border-white/10 rounded-xl text-white/60 font-black uppercase tracking-widest text-[9px] hover:bg-white/10 transition-colors"
+              >
+                Return to Game
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+
         {showScoreSummary && (
           <motion.div
             initial={{ opacity: 0 }}
