@@ -119,7 +119,7 @@ export default function GameBoard({ gameState, mySeat, onPlayCard, onSubmitBid, 
                 const posClasses = [
                   "bottom-0 translate-y-16", // Bottom (ME)
                   "right-0 translate-x-4",   // Right
-                  "top-0 -translate-y-16",    // Top
+                  "top-0 -translate-y-16 sm:-translate-y-8", // Top - Adjusted for desktop
                   "left-0 -translate-x-4",   // Left
                 ][index];
 
