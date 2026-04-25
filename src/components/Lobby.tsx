@@ -106,7 +106,9 @@ export default function Lobby({ players, roomCode, onClaimSeat, onAddBot, onStar
                 {!player && isCreator && (
                   <button
                     onClick={() => onAddBot(seat)}
-                    className="absolute -top-2 -left-2 bg-gold hover:bg-gold/90 text-black p-1.5 rounded-full shadow-lg transition-transform active:scale-95 border border-black/20"
+                    className={`absolute -top-2 bg-gold hover:bg-gold/90 text-black p-1.5 rounded-full shadow-lg transition-transform active:scale-95 border border-black/20 ${
+                      seat === 'WEST' ? '-right-2' : '-left-2'
+                    }`}
                     title="Add Bot"
                   >
                     <Bot className="w-4 h-4" />
