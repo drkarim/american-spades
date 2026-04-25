@@ -238,6 +238,13 @@ async function startServer() {
     if (!leadsWith) {
       // Leading the trick
       const nonSpades = hand.filter(c => c.suit !== 'SPADES');
+      const spades = hand.filter(c => c.suit === 'SPADES').sort((a, b) => getRankValue(b.rank) - getRankValue(a.rank));
+      
+      // Strategy: Proactively lead power Spades if broken to cover Nil partner
+      if (isPartnerNil && gameState.spadesBroken && spades.length > 0) {
+        const powerSpades = spades.filter(c => c.rank === 'A' || c.rank === 'K');
+        if (powerSpades.length > 0) return powerSpades[0];
+      }
       
       if (nonSpades.length > 0) {
         const sortedDesc = nonSpades.sort((a, b) => getRankValue(b.rank) - getRankValue(a.rank));
@@ -280,12 +287,21 @@ async function startServer() {
         const sortedDesc = following.sort((a, b) => getRankValue(b.rank) - getRankValue(a.rank));
         const sortedAsc = [...following].sort((a, b) => getRankValue(a.rank) - getRankValue(b.rank));
         
-        // Partner is Nil - try to take the trick if they are winning it
-        if (isPartnerNil && partnerWinning) {
-          // Card that wins over best in trick
-          const cardsThatBeatCurrent = following.filter(c => getRankValue(c.rank) > getRankValue(bestInTrick.card.rank))
-            .sort((a, b) => getRankValue(a.rank) - getRankValue(b.rank));
-          if (cardsThatBeatCurrent.length > 0) return cardsThatBeatCurrent[0]; 
+        // Partner is Nil - try to take the trick if they are winning it or use power spades to cover
+        if (isPartnerNil) {
+          // Proactively play Ace or King of Spades if Spades was led to "cover" partner
+          if (leadsWith === 'SPADES') {
+            const powerSpades = following.filter(c => c.rank === 'A' || c.rank === 'K')
+              .sort((a, b) => getRankValue(b.rank) - getRankValue(a.rank));
+            if (powerSpades.length > 0) return powerSpades[0];
+          }
+
+          if (partnerWinning) {
+            // Card that wins over best in trick
+            const cardsThatBeatCurrent = following.filter(c => getRankValue(c.rank) > getRankValue(bestInTrick.card.rank))
+              .sort((a, b) => getRankValue(a.rank) - getRankValue(b.rank));
+            if (cardsThatBeatCurrent.length > 0) return cardsThatBeatCurrent[0]; 
+          }
         }
 
         // Opponent is Nil - try to stay under them
@@ -314,9 +330,15 @@ async function startServer() {
       
       // Partner Nil and might win? Trump it or dump junk
       if (isPartnerNil) {
-        const spades = hand.filter(c => c.suit === 'SPADES').sort((a, b) => getRankValue(a.rank) - getRankValue(b.rank));
-        if (partnerWinning && spades.length > 0) {
-          return spades[0]; // Trump to save them
+        const spades = hand.filter(c => c.suit === 'SPADES').sort((a, b) => getRankValue(b.rank) - getRankValue(a.rank));
+        if (spades.length > 0) {
+          // If we have A or K of Spades, use it proactively to cover partner
+          const powerSpades = spades.filter(c => c.rank === 'A' || c.rank === 'K');
+          if (powerSpades.length > 0) return powerSpades[0];
+          
+          if (partnerWinning) {
+            return spades[spades.length - 1]; // Lowest spade to trump and save
+          }
         }
       }
 
