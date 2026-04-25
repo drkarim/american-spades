@@ -117,7 +117,7 @@ export default function GameBoard({ gameState, mySeat, onPlayCard, onSubmitBid, 
                 const player = gameState.players.find(p => p.seat === seat);
 
                 const posClasses = [
-                  "bottom-0 translate-y-16", // Bottom (ME)
+                  "bottom-0 translate-y-16 sm:translate-y-8", // Bottom (ME) - Adjusted for desktop
                   "right-0 translate-x-4",   // Right
                   "top-0 -translate-y-16 sm:-translate-y-8", // Top - Adjusted for desktop
                   "left-0 -translate-x-4",   // Left
