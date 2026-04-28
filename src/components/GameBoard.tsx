@@ -52,6 +52,9 @@ export default function GameBoard({
   const isPlaying = gameState.status === 'PLAYING';
 
   useEffect(() => {
+    if (gameState.status === 'ROUND_END' || gameState.status === 'GAME_OVER') {
+      setShowScoreSummary(true);
+    }
     if (gameState.status === 'ROUND_END' || !isMyTurn) {
       setFocusedCard(null);
     }
@@ -446,12 +449,48 @@ export default function GameBoard({
               className="bg-[#0a1a14] w-full max-w-sm rounded-[2.5rem] border-4 border-gold/30 p-8 shadow-2xl"
             >
                <div className="text-center mb-8">
-                  <Trophy className="w-12 h-12 text-gold mx-auto mb-4" />
-                  <h2 className="text-3xl font-serif italic text-white tracking-tight">Game Stats</h2>
+                  {gameState.status === 'GAME_OVER' ? (
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: [0, 1.2, 1], rotate: [0, 10, 0] }}
+                      transition={{ duration: 0.8, ease: "backOut" }}
+                    >
+                      <Trophy className="w-20 h-20 text-gold mx-auto mb-4 drop-shadow-[0_0_15px_rgba(197,160,89,0.8)]" />
+                      <h2 className="text-4xl font-serif italic text-gold tracking-tighter mb-2">Victory!</h2>
+                      <p className="text-white/80 font-medium tracking-widest uppercase text-[10px]">
+                        Congratulations to the Champions
+                      </p>
+                    </motion.div>
+                  ) : (
+                    <>
+                      <Trophy className="w-12 h-12 text-gold mx-auto mb-4" />
+                      <h2 className="text-3xl font-serif italic text-white tracking-tight">Game Stats</h2>
+                    </>
+                  )}
                </div>
 
                 <div className="space-y-4 mb-4">
-                  <div className="flex flex-col p-4 bg-white/5 rounded-2xl border-l-4 border-gold">
+                  {gameState.status === 'GAME_OVER' && (
+                    <div className="text-center mb-6 py-4 bg-gold/10 rounded-2xl border border-gold/20">
+                       {gameState.scores.NS.points >= 500 || (gameState.scores.EW.points <= -200 && gameState.scores.NS.points > gameState.scores.EW.points) ? (
+                         <div className="animate-bounce">
+                           <span className="text-gold font-bold text-xl uppercase tracking-[0.2em] block">Team 1 Wins!</span>
+                           <span className="text-white/60 text-[10px] uppercase font-black tracking-widest">{getTeamNames('NS')}</span>
+                         </div>
+                       ) : (
+                         <div className="animate-bounce">
+                           <span className="text-gold font-bold text-xl uppercase tracking-[0.2em] block">Team 2 Wins!</span>
+                           <span className="text-white/60 text-[10px] uppercase font-black tracking-widest">{getTeamNames('EW')}</span>
+                         </div>
+                       )}
+                    </div>
+                  )}
+
+                  <div className={`flex flex-col p-4 bg-white/5 rounded-2xl border-l-4 transition-all ${
+                    gameState.status === 'GAME_OVER' && (gameState.scores.NS.points >= 500 || (gameState.scores.EW.points <= -200 && gameState.scores.NS.points > gameState.scores.EW.points))
+                      ? 'border-gold bg-gold/10 scale-105 shadow-[0_0_30px_rgba(197,160,89,0.2)]' 
+                      : 'border-gold'
+                  }`}>
                     <span className="text-[10px] uppercase tracking-widest text-gold/60 mb-1">Team 1 (NS)</span>
                     {gameState.players.filter(p => ['NORTH', 'SOUTH'].includes(p.seat as string)).map(p => (
                       <div key={p.id} className="flex justify-between items-center text-xs py-1">
@@ -470,7 +509,11 @@ export default function GameBoard({
                         </div>
                     </div>
                   </div>
-                  <div className="flex flex-col p-4 bg-white/5 rounded-2xl border-l-4 border-white/20">
+                  <div className={`flex flex-col p-4 bg-white/5 rounded-2xl border-l-4 transition-all ${
+                    gameState.status === 'GAME_OVER' && (gameState.scores.EW.points >= 500 || (gameState.scores.NS.points <= -200 && gameState.scores.EW.points > gameState.scores.NS.points))
+                      ? 'border-gold bg-gold/10 scale-105 shadow-[0_0_30px_rgba(197,160,89,0.2)]'
+                      : 'border-white/20'
+                  }`}>
                     <span className="text-[10px] uppercase tracking-widest text-white/30 mb-1">Team 2 (EW)</span>
                     {gameState.players.filter(p => ['EAST', 'WEST'].includes(p.seat as string)).map(p => (
                       <div key={p.id} className="flex justify-between items-center text-xs py-1">
