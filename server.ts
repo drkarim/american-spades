@@ -525,7 +525,8 @@ async function startServer() {
     });
 
     socket.on('joinRoom', ({ name, roomCode }) => {
-      const room = rooms.get(roomCode);
+      const sanitizedCode = roomCode?.trim().toUpperCase();
+      const room = rooms.get(sanitizedCode);
       if (!room) {
         socket.emit('error', 'Room not found');
         return;
@@ -536,8 +537,8 @@ async function startServer() {
       }
       const player: Player = { id: socket.id, name, seat: null };
       room.players.push(player);
-      socket.join(roomCode);
-      io.to(roomCode).emit('roomJoined', { roomCode, players: room.players, gameState: room.gameState, adminId: room.adminId });
+      socket.join(sanitizedCode);
+      io.to(sanitizedCode).emit('roomJoined', { roomCode: sanitizedCode, players: room.players, gameState: room.gameState, adminId: room.adminId });
     });
 
     socket.on('claimSeat', ({ roomCode, seat }) => {
@@ -759,7 +760,14 @@ async function startServer() {
           }
 
           if (room.players.length === 0 || room.players.every(p => p.isBot)) {
-            rooms.delete(roomCode);
+            // Give 30 seconds for a human to rejoin (e.g. on refresh) before deleting
+            setTimeout(() => {
+              const currentRoom = rooms.get(roomCode);
+              if (currentRoom && (currentRoom.players.length === 0 || currentRoom.players.every(p => p.isBot))) {
+                console.log(`[Room ${roomCode}] Empty for 30s, deleting.`);
+                rooms.delete(roomCode);
+              }
+            }, 30000);
           } else {
             if (room.adminId === socket.id) {
               const nextHuman = room.players.find(p => !p.isBot);

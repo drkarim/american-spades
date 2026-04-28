@@ -70,7 +70,7 @@ export default function App() {
 
   const joinRoom = () => {
     if (!name || !roomCode) return setError('Please enter name and room code');
-    socket.emit('joinRoom', { name, roomCode });
+    socket.emit('joinRoom', { name, roomCode: roomCode.trim() });
   };
 
   const claimSeat = (seat: Seat) => {
