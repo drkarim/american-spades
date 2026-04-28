@@ -206,6 +206,8 @@ export default function App() {
             onSubmitBid={(bid) => socket.emit('submitBid', { roomCode: currentRoom, bid })}
             onNextRound={() => socket.emit('nextRound', currentRoom)}
             onBootPlayer={bootPlayer}
+            onClaimSeat={claimSeat}
+            onAddBot={addBot}
           />
         )}
       </AnimatePresence>

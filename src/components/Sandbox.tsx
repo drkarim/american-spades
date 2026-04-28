@@ -185,6 +185,8 @@ export default function Sandbox({ onBack }: SandboxProps) {
               onBootPlayer={handleBootPlayer}
               adminId={activeState.adminId}
               myId={activeState.socketId || ''}
+              onClaimSeat={(seat) => sockets[activePlayerIndex].emit('claimSeat', { roomCode, seat })}
+              onAddBot={(seat) => sockets[activePlayerIndex].emit('addBot', { roomCode, seat })}
             />
           ) : null}
         </div>

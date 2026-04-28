@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { GameState, Card, Seat } from '../types';
 import { getCardImage } from '../utils';
 import { motion, AnimatePresence } from 'motion/react';
-import { Info, Trophy, AlertCircle, Eye, Play, X, UserMinus } from 'lucide-react';
+import { Info, Trophy, AlertCircle, Eye, Play, X, UserMinus, Bot } from 'lucide-react';
 
 interface GameBoardProps {
   gameState: GameState;
@@ -13,11 +13,24 @@ interface GameBoardProps {
   onSubmitBid: (bid: number) => void;
   onNextRound: () => void;
   onBootPlayer: (id: string) => void;
+  onClaimSeat: (seat: Seat) => void;
+  onAddBot: (seat: Seat) => void;
 }
 
 const SEAT_ORDER: Seat[] = ['NORTH', 'EAST', 'SOUTH', 'WEST'];
 
-export default function GameBoard({ gameState, mySeat, adminId, myId, onPlayCard, onSubmitBid, onNextRound, onBootPlayer }: GameBoardProps) {
+export default function GameBoard({ 
+  gameState, 
+  mySeat, 
+  adminId, 
+  myId, 
+  onPlayCard, 
+  onSubmitBid, 
+  onNextRound, 
+  onBootPlayer,
+  onClaimSeat,
+  onAddBot
+}: GameBoardProps) {
   const [selectedBid, setSelectedBid] = useState<number | null>(null);
   const [showScoreSummary, setShowScoreSummary] = useState(false);
   const [showLastTrick, setShowLastTrick] = useState(false);
@@ -227,8 +240,27 @@ export default function GameBoard({ gameState, mySeat, adminId, myId, onPlayCard
                           <img src={getCardImage(trick.card)} className="w-20 h-auto rounded border border-white/10" alt="card" />
                         </motion.div>
                       ) : (
-                        <div className={`w-20 h-32 border border-dashed ${isActive ? 'border-gold/40 bg-gold/5' : 'border-white/5 bg-black/10'} rounded flex items-center justify-center`}>
-                           {isActive && <div className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse" />}
+                        <div className={`w-20 h-32 border border-dashed ${isActive ? 'border-gold/40 bg-gold/5' : 'border-white/5 bg-black/10'} rounded flex flex-col items-center justify-center gap-2 p-2`}>
+                           {!player && mySeat === null && (
+                             <button 
+                               onClick={() => onClaimSeat(seat)}
+                               className="w-full py-1.5 bg-gold text-black text-[8px] font-black uppercase tracking-widest rounded transition-transform active:scale-95 shadow-lg"
+                             >
+                               Claim
+                             </button>
+                           )}
+                           {!player && isAdmin && (
+                             <button 
+                               onClick={() => onAddBot(seat)}
+                               className="w-full py-1.5 bg-white/10 hover:bg-white/20 text-white/60 text-[8px] font-black uppercase tracking-widest rounded border border-white/10 flex items-center justify-center gap-1 transition-transform active:scale-95"
+                             >
+                               <Bot className="w-2 h-2" />
+                               Bot
+                             </button>
+                           )}
+                           {isActive && !(!player && (mySeat === null || isAdmin)) && (
+                             <div className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse" />
+                           )}
                         </div>
                       )}
                     </AnimatePresence>

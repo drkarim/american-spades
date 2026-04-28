@@ -551,6 +551,11 @@ async function startServer() {
 
       player.seat = seat;
       io.to(roomCode).emit('roomJoined', { roomCode, players: room.players, gameState: room.gameState, adminId: room.adminId });
+      
+      // If game is in progress, trigger bot action check
+      if (room.gameState) {
+        triggerBotAction(roomCode);
+      }
     });
 
     socket.on('addBot', ({ roomCode, seat }) => {
@@ -568,6 +573,11 @@ async function startServer() {
       };
       room.players.push(botPlayer);
       io.to(roomCode).emit('roomJoined', { roomCode, players: room.players, gameState: room.gameState, adminId: room.adminId });
+      
+      // If game is in progress, the bot might need to act immediately
+      if (room.gameState) {
+        triggerBotAction(roomCode);
+      }
     });
 
     socket.on('bootPlayer', ({ roomCode, playerId }) => {
