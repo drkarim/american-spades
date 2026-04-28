@@ -1,6 +1,6 @@
 import { Player, Seat } from '../types';
 import { motion } from 'motion/react';
-import { User, Shield, Share2, Bot } from 'lucide-react';
+import { User, Shield, Share2, Bot, UserMinus, X } from 'lucide-react';
 
 interface LobbyProps {
   players: Player[];
@@ -8,16 +8,18 @@ interface LobbyProps {
   onClaimSeat: (seat: Seat) => void;
   onAddBot: (seat: Seat) => void;
   onStartGame: () => void;
+  onBootPlayer: (id: string) => void;
   myId: string | undefined;
+  adminId: string | null;
 }
 
 const SEATS: Seat[] = ['NORTH', 'SOUTH', 'EAST', 'WEST'];
 
-export default function Lobby({ players, roomCode, onClaimSeat, onAddBot, onStartGame, myId }: LobbyProps) {
+export default function Lobby({ players, roomCode, onClaimSeat, onAddBot, onStartGame, onBootPlayer, myId, adminId }: LobbyProps) {
   const getPlayerAtSeat = (seat: Seat) => players.find(p => p.seat === seat);
   
   const allSeatsFilled = players.length === 4 && SEATS.every(s => players.some(p => p.seat === s));
-  const isCreator = players[0]?.id === myId;
+  const isAdmin = myId === adminId;
 
   return (
     <motion.div
@@ -42,7 +44,7 @@ export default function Lobby({ players, roomCode, onClaimSeat, onAddBot, onStar
            <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
           <div className="text-white/5 text-4xl font-serif italic rotate-12 select-none uppercase tracking-tighter">Karim’s Clubhouse Spades</div>
           
-          {allSeatsFilled && isCreator && (
+          {allSeatsFilled && isAdmin && (
             <motion.button
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -53,7 +55,7 @@ export default function Lobby({ players, roomCode, onClaimSeat, onAddBot, onStar
             </motion.button>
           )}
 
-          {allSeatsFilled && !isCreator && (
+          {allSeatsFilled && !isAdmin && (
              <p className="relative z-50 text-gold text-xs font-bold uppercase tracking-widest animate-pulse drop-shadow-lg bg-black/40 px-4 py-2 rounded-lg border border-gold/20">
                Waiting for Host
              </p>
@@ -103,7 +105,7 @@ export default function Lobby({ players, roomCode, onClaimSeat, onAddBot, onStar
                   )}
                 </button>
                 
-                {!player && isCreator && (
+                {!player && isAdmin && (
                   <button
                     onClick={() => onAddBot(seat)}
                     className={`absolute -top-2 bg-gold hover:bg-gold/90 text-black p-1.5 rounded-full shadow-lg transition-transform active:scale-95 border border-black/20 ${
@@ -112,6 +114,18 @@ export default function Lobby({ players, roomCode, onClaimSeat, onAddBot, onStar
                     title="Add Bot"
                   >
                     <Bot className="w-4 h-4" />
+                  </button>
+                )}
+
+                {player && isAdmin && player.id !== myId && (
+                  <button
+                    onClick={() => onBootPlayer(player.id)}
+                    className={`absolute -top-2 bg-red-500 hover:bg-red-600 text-white p-1.5 rounded-full shadow-lg transition-transform active:scale-95 border border-black/20 ${
+                      seat === 'WEST' ? '-right-2' : '-left-2'
+                    }`}
+                    title={player.isBot ? "Remove Bot" : "Kick Player"}
+                  >
+                    <X className="w-4 h-4" />
                   </button>
                 )}
               </div>
@@ -129,12 +143,24 @@ export default function Lobby({ players, roomCode, onClaimSeat, onAddBot, onStar
                 <div className="flex items-center gap-3">
                   <div className={`w-1.5 h-1.5 rounded-full ${p.seat ? 'bg-gold shadow-[0_0_8px_#c5a059]' : 'bg-white/20'}`} />
                   <span className="font-medium text-sm text-white/80">{p.name} {p.isBot && "(Bot)"}</span>
+                  {p.id === adminId && <Shield className="w-3 h-3 text-gold/60" />}
                 </div>
-                {p.seat ? (
-                   <span className="text-[9px] font-bold text-gold bg-gold/10 px-2 py-1 rounded-lg uppercase tracking-widest border border-gold/20">{p.seat}</span>
-                ) : (
-                   <span className="text-[9px] font-bold text-white/40 bg-white/5 px-2 py-1 rounded-lg uppercase tracking-widest">Waiting</span>
-                )}
+                <div className="flex items-center gap-2">
+                  {isAdmin && p.id !== myId && (
+                    <button
+                      onClick={() => onBootPlayer(p.id)}
+                      className="p-1.5 hover:bg-red-500/10 text-red-400 rounded-lg transition-colors group"
+                      title="Kick Player"
+                    >
+                      <UserMinus className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                    </button>
+                  )}
+                  {p.seat ? (
+                    <span className="text-[9px] font-bold text-gold bg-gold/10 px-2 py-1 rounded-lg uppercase tracking-widest border border-gold/20">{p.seat}</span>
+                  ) : (
+                    <span className="text-[9px] font-bold text-white/40 bg-white/5 px-2 py-1 rounded-lg uppercase tracking-widest">Waiting</span>
+                  )}
+                </div>
               </div>
             ))}
           </div>

@@ -25,7 +25,7 @@ async function startServer() {
   });
 
   // Game Rooms Storage
-  const rooms = new Map<string, { players: Player[]; gameState: GameState | null }>();
+  const rooms = new Map<string, { players: Player[]; gameState: GameState | null, adminId: string }>();
 
   // Helper Functions
   const generateRoomCode = () => {
@@ -519,9 +519,9 @@ async function startServer() {
     socket.on('createRoom', (name) => {
       const roomCode = generateRoomCode();
       const player: Player = { id: socket.id, name, seat: null };
-      rooms.set(roomCode, { players: [player], gameState: null });
+      rooms.set(roomCode, { players: [player], gameState: null, adminId: socket.id });
       socket.join(roomCode);
-      socket.emit('roomJoined', { roomCode, players: [player], gameState: null });
+      socket.emit('roomJoined', { roomCode, players: [player], gameState: null, adminId: socket.id });
     });
 
     socket.on('joinRoom', ({ name, roomCode }) => {
@@ -537,7 +537,7 @@ async function startServer() {
       const player: Player = { id: socket.id, name, seat: null };
       room.players.push(player);
       socket.join(roomCode);
-      io.to(roomCode).emit('roomJoined', { roomCode, players: room.players, gameState: room.gameState });
+      io.to(roomCode).emit('roomJoined', { roomCode, players: room.players, gameState: room.gameState, adminId: room.adminId });
     });
 
     socket.on('claimSeat', ({ roomCode, seat }) => {
@@ -550,7 +550,7 @@ async function startServer() {
       if (room.players.some(p => p.seat === seat)) return;
 
       player.seat = seat;
-      io.to(roomCode).emit('roomJoined', { roomCode, players: room.players, gameState: room.gameState });
+      io.to(roomCode).emit('roomJoined', { roomCode, players: room.players, gameState: room.gameState, adminId: room.adminId });
     });
 
     socket.on('addBot', ({ roomCode, seat }) => {
@@ -567,7 +567,36 @@ async function startServer() {
         isBot: true
       };
       room.players.push(botPlayer);
-      io.to(roomCode).emit('roomJoined', { roomCode, players: room.players, gameState: room.gameState });
+      io.to(roomCode).emit('roomJoined', { roomCode, players: room.players, gameState: room.gameState, adminId: room.adminId });
+    });
+
+    socket.on('bootPlayer', ({ roomCode, playerId }) => {
+      const room = rooms.get(roomCode);
+      if (!room || room.adminId !== socket.id) return;
+
+      const playerToBoot = room.players.find(p => p.id === playerId);
+      if (!playerToBoot) return;
+
+      // Cannot boot self
+      if (playerToBoot.id === socket.id) return;
+
+      // Remove player from list
+      room.players = room.players.filter(p => p.id !== playerId);
+
+      // If they were human, they might need to be kicked from the socket room
+      const bootedSocket = io.sockets.sockets.get(playerId);
+      if (bootedSocket) {
+        bootedSocket.leave(roomCode);
+        bootedSocket.emit('kicked');
+      }
+
+      // If game is in progress, we might need more complex logic, but for now:
+      // If we boot someone, we should probably reset or update the gameState players list
+      if (room.gameState) {
+        room.gameState.players = room.players;
+      }
+
+      io.to(roomCode).emit('roomJoined', { roomCode, players: room.players, gameState: room.gameState, adminId: room.adminId });
     });
 
     socket.on('startGame', (roomCode) => {
@@ -577,6 +606,7 @@ async function startServer() {
       const gameState: GameState = {
         roomCode,
         players: room.players,
+        adminId: room.adminId,
         status: 'LOBBY',
         dealer: 'NORTH',
         turn: 'NORTH',
@@ -701,7 +731,41 @@ async function startServer() {
 
     socket.on('disconnect', () => {
       console.log('Client disconnected:', socket.id);
-      // Optional: Handle cleanup or player timeout
+      
+      for (const [roomCode, room] of rooms.entries()) {
+        const playerIndex = room.players.findIndex(p => p.id === socket.id);
+        if (playerIndex !== -1) {
+          const removedPlayer = room.players[playerIndex];
+          room.players.splice(playerIndex, 1);
+          
+          // Reassign seat if the player had one
+          if (room.gameState && removedPlayer.seat) {
+             // In a real game we might want to pause or add a bot, 
+             // but here we just make the seat available for now?
+             // Actually, the game logic depends on 4 players being active.
+             // If someone leaves mid-game, it might be better to just reset to lobby or mark as needing replacement.
+             // For now, let's just update the players list.
+             room.gameState.players = room.players;
+          }
+
+          if (room.players.length === 0 || room.players.every(p => p.isBot)) {
+            rooms.delete(roomCode);
+          } else {
+            if (room.adminId === socket.id) {
+              const nextHuman = room.players.find(p => !p.isBot);
+              if (nextHuman) {
+                room.adminId = nextHuman.id;
+                if (room.gameState) room.gameState.adminId = nextHuman.id;
+              } else {
+                rooms.delete(roomCode);
+                return;
+              }
+            }
+            io.to(roomCode).emit('roomJoined', { roomCode, players: room.players, gameState: room.gameState, adminId: room.adminId });
+          }
+          break;
+        }
+      }
     });
   });
 

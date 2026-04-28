@@ -20,7 +20,8 @@ export default function Sandbox({ onBack }: SandboxProps) {
     gameState: GameState | null;
     currentRoom: string | null;
     socketId: string | null;
-  }[]>(Array(4).fill({ players: [], gameState: null, currentRoom: null, socketId: null }));
+    adminId: string | null;
+  }[]>(Array(4).fill({ players: [], gameState: null, currentRoom: null, socketId: null, adminId: null }));
 
   const [roomCode, setRoomCode] = useState<string | null>(null);
 
@@ -41,11 +42,11 @@ export default function Sandbox({ onBack }: SandboxProps) {
           });
         });
 
-        socket.on('roomJoined', ({ roomCode, players, gameState }) => {
+        socket.on('roomJoined', ({ roomCode, players, gameState, adminId }) => {
           setRoomCode(roomCode);
           setPlayerStates(prev => {
             const next = [...prev];
-            next[i] = { ...next[i], players, gameState, currentRoom: roomCode };
+            next[i] = { ...next[i], players, gameState, currentRoom: roomCode, adminId };
             return next;
           });
         });
@@ -53,7 +54,7 @@ export default function Sandbox({ onBack }: SandboxProps) {
         socket.on('gameStateUpdate', (newGameState: GameState) => {
           setPlayerStates(prev => {
             const next = [...prev];
-            next[i] = { ...next[i], gameState: newGameState };
+            next[i] = { ...next[i], gameState: newGameState, adminId: newGameState.adminId };
             return next;
           });
         });
@@ -100,6 +101,11 @@ export default function Sandbox({ onBack }: SandboxProps) {
 
   const handleNextRound = () => {
     sockets[0].emit('nextRound', roomCode);
+  };
+
+  const handleBootPlayer = (playerId: string) => {
+    const socket = sockets[activePlayerIndex];
+    socket.emit('bootPlayer', { roomCode, playerId });
   };
 
   const activeState = playerStates[activePlayerIndex];
@@ -165,7 +171,9 @@ export default function Sandbox({ onBack }: SandboxProps) {
               onClaimSeat={() => {}} // Auto handled in sandbox
               onAddBot={() => {}} // Bots not used in sandbox simulation mode
               onStartGame={handleStartGame}
+              onBootPlayer={handleBootPlayer}
               myId={activeState.socketId || ''}
+              adminId={activeState.adminId}
             />
           ) : activeState.gameState ? (
             <GameBoard
@@ -174,6 +182,9 @@ export default function Sandbox({ onBack }: SandboxProps) {
               onPlayCard={handlePlayCard}
               onSubmitBid={handleSubmitBid}
               onNextRound={handleNextRound}
+              onBootPlayer={handleBootPlayer}
+              adminId={activeState.adminId}
+              myId={activeState.socketId || ''}
             />
           ) : null}
         </div>

@@ -18,6 +18,7 @@ export interface Player {
 export interface GameState {
   roomCode: string;
   players: Player[];
+  adminId: string;
   status: 'LOBBY' | 'BIDDING' | 'PLAYING' | 'ROUND_END' | 'GAME_OVER';
   dealer: Seat;
   turn: Seat;

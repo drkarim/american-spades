@@ -19,6 +19,7 @@ export default function App() {
   const [roomCode, setRoomCode] = useState('');
   const [players, setPlayers] = useState<Player[]>([]);
   const [gameState, setGameState] = useState<GameState | null>(null);
+  const [adminId, setAdminId] = useState<string | null>(null);
   const [currentRoom, setCurrentRoom] = useState<string | null>(null);
   const [view, setView] = useState<'HOME' | 'LOBBY' | 'GAME' | 'SANDBOX'>('HOME');
   const [error, setError] = useState<string | null>(null);
@@ -26,9 +27,10 @@ export default function App() {
   useEffect(() => {
     socket = io();
 
-    socket.on('roomJoined', ({ roomCode, players, gameState }) => {
+    socket.on('roomJoined', ({ roomCode, players, gameState, adminId }) => {
       setPlayers(players);
       setGameState(gameState);
+      setAdminId(adminId);
       setCurrentRoom(roomCode);
       setRoomCode(roomCode);
       setView('LOBBY');
@@ -36,9 +38,19 @@ export default function App() {
 
     socket.on('gameStateUpdate', (newGameState: GameState) => {
       setGameState(newGameState);
+      setAdminId(newGameState.adminId);
       if (newGameState.status !== 'LOBBY') {
         setView('GAME');
       }
+    });
+
+    socket.on('kicked', () => {
+      setError('You have been removed from the room by the admin');
+      setTimeout(() => setError(null), 5000);
+      setView('HOME');
+      setCurrentRoom(null);
+      setGameState(null);
+      setAdminId(null);
     });
 
     socket.on('error', (msg: string) => {
@@ -74,6 +86,11 @@ export default function App() {
   const addBot = (seat: Seat) => {
     if (!currentRoom) return;
     socket.emit('addBot', { roomCode: currentRoom, seat });
+  };
+
+  const bootPlayer = (playerId: string) => {
+    if (!currentRoom) return;
+    socket.emit('bootPlayer', { roomCode: currentRoom, playerId });
   };
 
   if (view === 'SANDBOX') {
@@ -173,7 +190,9 @@ export default function App() {
             onClaimSeat={claimSeat}
             onAddBot={addBot}
             onStartGame={startGame}
+            onBootPlayer={bootPlayer}
             myId={socket.id}
+            adminId={adminId}
           />
         )}
 
@@ -181,9 +200,12 @@ export default function App() {
           <GameBoard
             gameState={gameState}
             mySeat={players.find(p => p.id === socket.id)?.seat || null}
+            adminId={adminId}
+            myId={socket.id}
             onPlayCard={(card) => socket.emit('playCard', { roomCode: currentRoom, card })}
             onSubmitBid={(bid) => socket.emit('submitBid', { roomCode: currentRoom, bid })}
             onNextRound={() => socket.emit('nextRound', currentRoom)}
+            onBootPlayer={bootPlayer}
           />
         )}
       </AnimatePresence>

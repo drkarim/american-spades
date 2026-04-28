@@ -2,23 +2,28 @@ import React, { useState, useEffect } from 'react';
 import { GameState, Card, Seat } from '../types';
 import { getCardImage } from '../utils';
 import { motion, AnimatePresence } from 'motion/react';
-import { Info, Trophy, AlertCircle, Eye, Play } from 'lucide-react';
+import { Info, Trophy, AlertCircle, Eye, Play, X, UserMinus } from 'lucide-react';
 
 interface GameBoardProps {
   gameState: GameState;
   mySeat: Seat | null;
+  adminId: string | null;
+  myId: string | undefined;
   onPlayCard: (card: Card) => void;
   onSubmitBid: (bid: number) => void;
   onNextRound: () => void;
+  onBootPlayer: (id: string) => void;
 }
 
 const SEAT_ORDER: Seat[] = ['NORTH', 'EAST', 'SOUTH', 'WEST'];
 
-export default function GameBoard({ gameState, mySeat, onPlayCard, onSubmitBid, onNextRound }: GameBoardProps) {
+export default function GameBoard({ gameState, mySeat, adminId, myId, onPlayCard, onSubmitBid, onNextRound, onBootPlayer }: GameBoardProps) {
   const [selectedBid, setSelectedBid] = useState<number | null>(null);
   const [showScoreSummary, setShowScoreSummary] = useState(false);
   const [showLastTrick, setShowLastTrick] = useState(false);
   const [focusedCard, setFocusedCard] = useState<string | null>(null);
+
+  const isAdmin = myId === adminId;
 
   const rotatedSeats = React.useMemo(() => {
     const startIndex = SEAT_ORDER.indexOf(mySeat || 'SOUTH');
@@ -166,6 +171,15 @@ export default function GameBoard({ gameState, mySeat, onPlayCard, onSubmitBid, 
                           transition={{ repeat: Infinity, duration: 2 }}
                           className={`text-[10px] uppercase tracking-widest font-black flex items-center gap-1.5 mb-1 ${isActive ? 'text-gold' : 'text-white/40'}`}
                         >
+                          {isAdmin && player && player.id !== myId && (
+                            <button
+                              onClick={() => onBootPlayer(player.id)}
+                              className="pointer-events-auto bg-red-500 hover:bg-red-600 text-white p-0.5 rounded transition-colors mr-1"
+                              title="Kick Player"
+                            >
+                              <X className="w-2 h-2" />
+                            </button>
+                          )}
                           {isActive && <motion.div animate={{ x: [-2, 2, -2] }} transition={{ repeat: Infinity, duration: 1 }}><Play className="w-2.5 h-2.5 rotate-90 fill-current" /></motion.div>}
                           {player?.name || '...'}
                         </motion.div>
@@ -404,11 +418,20 @@ export default function GameBoard({ gameState, mySeat, onPlayCard, onSubmitBid, 
                   <h2 className="text-3xl font-serif italic text-white tracking-tight">Game Stats</h2>
                </div>
 
-               <div className="space-y-4 mb-8">
+                <div className="space-y-4 mb-4">
                   <div className="flex flex-col p-4 bg-white/5 rounded-2xl border-l-4 border-gold">
-                    <span className="text-[10px] uppercase tracking-widest text-gold/60 mb-1">Team 1</span>
-                    <div className="flex justify-between items-center">
-                        <span className="font-bold text-white text-sm truncate max-w-[150px]">{getTeamNames('NS')}</span>
+                    <span className="text-[10px] uppercase tracking-widest text-gold/60 mb-1">Team 1 (NS)</span>
+                    {gameState.players.filter(p => ['NORTH', 'SOUTH'].includes(p.seat as string)).map(p => (
+                      <div key={p.id} className="flex justify-between items-center text-xs py-1">
+                        <span className="text-white/80">{p.name} {p.isBot && "(Bot)"}</span>
+                        {isAdmin && p.id !== myId && (
+                           <button onClick={() => onBootPlayer(p.id)} className="text-red-400 hover:text-red-500">
+                             <UserMinus className="w-3 h-3" />
+                           </button>
+                        )}
+                      </div>
+                    ))}
+                    <div className="flex justify-end items-center mt-2 pt-2 border-t border-white/5">
                         <div className="text-right">
                            <div className="text-2xl font-serif italic text-gold">{gameState.scores.NS.points}</div>
                            <div className="text-[9px] uppercase text-white/30 tracking-widest">Bags: {gameState.scores.NS.bags}</div>
@@ -416,9 +439,18 @@ export default function GameBoard({ gameState, mySeat, onPlayCard, onSubmitBid, 
                     </div>
                   </div>
                   <div className="flex flex-col p-4 bg-white/5 rounded-2xl border-l-4 border-white/20">
-                    <span className="text-[10px] uppercase tracking-widest text-white/30 mb-1">Team 2</span>
-                    <div className="flex justify-between items-center">
-                        <span className="font-bold text-white text-sm truncate max-w-[150px]">{getTeamNames('EW')}</span>
+                    <span className="text-[10px] uppercase tracking-widest text-white/30 mb-1">Team 2 (EW)</span>
+                    {gameState.players.filter(p => ['EAST', 'WEST'].includes(p.seat as string)).map(p => (
+                      <div key={p.id} className="flex justify-between items-center text-xs py-1">
+                        <span className="text-white/80">{p.name} {p.isBot && "(Bot)"}</span>
+                        {isAdmin && p.id !== myId && (
+                           <button onClick={() => onBootPlayer(p.id)} className="text-red-400 hover:text-red-500">
+                             <UserMinus className="w-3 h-3" />
+                           </button>
+                        )}
+                      </div>
+                    ))}
+                    <div className="flex justify-end items-center mt-2 pt-2 border-t border-white/5">
                         <div className="text-right">
                            <div className="text-2xl font-serif italic">{gameState.scores.EW.points}</div>
                            <div className="text-[9px] uppercase text-white/30 tracking-widest">Bags: {gameState.scores.EW.bags}</div>
