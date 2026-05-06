@@ -301,21 +301,16 @@ async function startServer() {
           return sortedDesc[0];
         }
 
+        // Strategy: Bag avoidance (Team bid met)
+        if (isOverbid && !isPartnerNil) {
+          const junk = hand.filter(c => c.suit !== 'SPADES').sort((a, b) => getRankValue(a.rank) - getRankValue(b.rank));
+          if (junk.length > 0) return junk[0];
+          return hand.sort((a, b) => getRankValue(a.rank) - getRankValue(b.rank))[0];
+        }
+
         // Strategy 2: Attack Nil Opponent
         if (isOpponentNil) {
           // Play low to force them to win
-          return sortedAsc[0];
-        }
-
-        // Strategy: Overbid protection
-        if (isOverbid && iNeedTricks) {
-          // Table is overbid, prioritize hitting my own bid
-          if (getRankValue(sortedDesc[0].rank) >= 11) return sortedDesc[0];
-        }
-
-        // Strategy: Bag avoidance
-        if (isBagProne && atRiskOfBags) {
-          // We have high bags (7-9) and already met our team bid, avoid winning more
           return sortedAsc[0];
         }
 
@@ -383,6 +378,11 @@ async function startServer() {
           }
         }
 
+        // BAG AVOIDANCE: If team bid is met and no Nil to protect, play as low as possible
+        if (isOverbid && !isPartnerNil) {
+          return sortedAsc[0];
+        }
+
         // Opponent is Nil - try to stay under them
         if (isOpponentNil) {
           return sortedAsc[0];
@@ -398,10 +398,9 @@ async function startServer() {
         }).sort((a, b) => getRankValue(a.rank) - getRankValue(b.rank));
 
         if (standardWinningCards.length > 0) {
-          if (isOverbid && iNeedTricks && !partnerWinning) return standardWinningCards[0];
           if (needsTricks && !partnerWinning) return standardWinningCards[0]; 
           
-          if (atRiskOfBags && isBagProne) return sortedAsc[0];
+          if (isOverbid && !isPartnerNil) return sortedAsc[0];
           if (atRiskOfBags) return sortedAsc[0]; 
         }
         
@@ -433,9 +432,15 @@ async function startServer() {
         if (nonSpades.length > 0) return nonSpades[0];
       }
 
+      // BAG AVOIDANCE: If team bid met and not protecting Nil, slough low junk and avoid trumping
+      if (isOverbid && !isPartnerNil) {
+        if (nonSpades.length > 0) return nonSpades[nonSpades.length - 1]; // lowest non-spade
+        return spades[spades.length - 1]; // lowest spade if forced
+      }
+
       if (partnerWinning && !isPartnerNil) {
         // Partner is winning normally! Don't over-trump.
-        return nonSpades.length > 0 ? nonSpades[0] : hand.sort((a, b) => getRankValue(a.rank) - getRankValue(b.rank))[0];
+        return nonSpades.length > 0 ? nonSpades[nonSpades.length - 1] : hand.sort((a, b) => getRankValue(a.rank) - getRankValue(b.rank))[0];
       }
 
       // If we need tricks, consider trumping
