@@ -374,11 +374,11 @@ async function startServer() {
           }).sort((a, b) => getRankValue(b.rank) - getRankValue(a.rank));
 
           if (winningCards.length > 0) {
-            if (partnerPlayed && !partnerWinning) {
-              // Bot plays after partner: win with minimum necessary card
+            if (partnerPlayed) {
+              // Bot plays after partner: win with minimum necessary card to protect/take away
               return [...winningCards].sort((a, b) => getRankValue(a.rank) - getRankValue(b.rank))[0];
             }
-            // Bot plays before partner or partner is already winning: play highest to ensure coverage
+            // Bot plays before partner: play highest to ensure coverage
             return winningCards[0];
           }
         }
@@ -421,11 +421,11 @@ async function startServer() {
           }).sort((a, b) => getRankValue(b.rank) - getRankValue(a.rank));
 
           if (winningSpades.length > 0) {
-            if (partnerPlayed && !partnerWinning) {
-              // Win with minimum spade
+            if (partnerPlayed) {
+              // Win with minimum spade when playing after partner
               return [...winningSpades].sort((a, b) => getRankValue(a.rank) - getRankValue(b.rank))[0];
             }
-            // Playing before partner or covering: play highest spade
+            // Playing before partner: play highest spade to cover
             return winningSpades[0];
           }
         }
