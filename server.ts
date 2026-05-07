@@ -176,7 +176,7 @@ async function startServer() {
   };
 
   // --- BOT CONSTANTS & TUNABLES ---
-  const NIL_BID_RISK_THRESHOLD = 45; // Lower = more aggressive. Risk score > threshold = Too risky for Nil.
+  const NIL_BID_RISK_THRESHOLD = 30; // Lower = more cautious. Risk score < threshold = Bid Nil.
   const RISK_VALUES = { 'A': 15, 'K': 12, 'Q': 8, 'J': 4, '10': 2 };
 
   const calculateBotBid = (hand: Card[]): number => {
