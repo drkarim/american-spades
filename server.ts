@@ -293,17 +293,20 @@ async function startServer() {
       // NIL HAND PLAY: Strategy when I am Nil
       if (isMyNil) {
         // Lead lowest card possible to create sloughing opportunities later
-        // Preferably lead a short suit so we void it faster
+        // Preferably lead a long suit to keep low cards in other suits, or a short suit if it's safe
         const suitCounts = { SPADES: 0, HEARTS: 0, DIAMONDS: 0, CLUBS: 0 };
         hand.forEach(c => suitCounts[c.suit]++);
         
+        // When Nil, leading low is the safest. 
+        // We prefer leading suits where we have many cards but all are low.
         const possibleLeads = nonSpades.length > 0 ? nonSpades : spades;
-        return possibleLeads.sort((a, b) => {
-          // Priority 1: Shortest suit
-          const countDiff = suitCounts[a.suit] - suitCounts[b.suit];
-          if (countDiff !== 0) return countDiff;
-          // Priority 2: Lowest rank
-          return getRankValue(a.rank) - getRankValue(b.rank);
+        return [...possibleLeads].sort((a, b) => {
+          // Priority 1: Lowest card rank (Absolute priority for Nil lead)
+          const rankDiff = getRankValue(a.rank) - getRankValue(b.rank);
+          if (rankDiff !== 0) return rankDiff;
+          
+          // Priority 2: Longer suits are often safer to lead low from
+          return suitCounts[b.suit] - suitCounts[a.suit];
         })[0];
       }
 
@@ -395,10 +398,27 @@ async function startServer() {
         
         // NIL HAND PLAY: Strategy when I am Nil (Following Suit)
         if (isMyNil) {
-          // If partner is already winning, dump the most dangerous card in suit
-          if (partnerWinning) return sortedDesc[0];
-          // Otherwise play as low as possible to stay under
-          return sortedAsc[0];
+          // Identify cards that don't win the trick (staying under current best)
+          const safeCards = sortedAsc.filter(c => {
+            if (bestInTrick.card.suit === 'SPADES') {
+              if (c.suit !== 'SPADES') return true;
+              return getRankValue(c.rank) < getRankValue(bestInTrick.card.rank);
+            } else {
+              if (c.suit === 'SPADES') return false; 
+              return getRankValue(c.rank) < getRankValue(bestInTrick.card.rank);
+            }
+          });
+
+          if (safeCards.length > 0) {
+            // User requested "lowest card possible". 
+            // While sloughing high-but-safe cards is optimal, we'll favor lower ones for safety
+            // as requested by the user to avoid any risk of winning if the trick state changes.
+            return safeCards[0];
+          }
+          
+          // Forced to win? Play the highest card to get it out of the hand
+          // Since we are forced to take the trick, we might as well clear our most dangerous card.
+          return sortedDesc[0];
         }
 
         // NIL ATTACK: Strategy when an opponent is Nil
@@ -476,13 +496,28 @@ async function startServer() {
 
       // NIL HAND PLAY: Strategy when I am Nil (Void in Led Suit)
       if (isMyNil) {
-        // Discard most dangerous cards first (High Non-Spades, then High Spades)
-        if (nonSpades.length > 0) return nonSpades[0]; // Highest non-spade
-        return spades[0]; // Highest spade
+        // Identify all cards that don't win the trick
+        const safeCards = hand.filter(c => {
+          if (bestInTrick.card.suit === 'SPADES') {
+            if (c.suit !== 'SPADES') return true;
+            return getRankValue(c.rank) < getRankValue(bestInTrick.card.rank);
+          } else {
+            // Winning card is not a spade, current card wins if it IS a spade
+            return c.suit !== 'SPADES';
+          }
+        }).sort((a, b) => {
+          // Priority 1: Highest rank (dumping dangerous cards)
+          return getRankValue(b.rank) - getRankValue(a.rank);
+        });
+
+        if (safeCards.length > 0) return safeCards[0];
+        // Forced to win (only have Spades higher than current trick)? Play highest to clear it.
+        return hand.sort((a, b) => getRankValue(b.rank) - getRankValue(a.rank))[0];
       }
 
       // Partner Nil and might be at risk? Trump it if possible
-      if (isPartnerNil && partnerIsAtRisk) {
+      // But only if I am NOT also Nil! (Don't sacrifice one Nil for another)
+      if (isPartnerNil && partnerIsAtRisk && !isMyNil) {
         if (spades.length > 0) {
           const winningSpades = spades.filter(c => {
             if (bestInTrick.card.suit !== 'SPADES') return true;
