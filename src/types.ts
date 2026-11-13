@@ -29,6 +29,8 @@ export interface GameState {
   tricksWon: Record<Seat, number>;
   currentTrick: { seat: Seat; card: Card }[];
   lastTrick: { seat: Seat; card: Card }[] | null;
+  /** Completed tricks of the current round, in order. Public information the bots use as card memory. */
+  trickHistory: { seat: Seat; card: Card }[][];
   scores: {
     NS: { points: number; bags: number };
     EW: { points: number; bags: number };
