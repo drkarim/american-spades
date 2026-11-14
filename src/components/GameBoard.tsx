@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { GameState, Card, Seat } from '../types';
 import { getCardImage } from '../utils';
+import { getWinner } from '../rules';
 import { motion, AnimatePresence } from 'motion/react';
 import { Info, Trophy, AlertCircle, Eye, Play, X, UserMinus, Bot } from 'lucide-react';
 
@@ -37,6 +38,7 @@ export default function GameBoard({
   const [focusedCard, setFocusedCard] = useState<string | null>(null);
 
   const isAdmin = myId === adminId;
+  const winner = gameState.status === 'GAME_OVER' ? getWinner(gameState.scores) : null;
 
   const rotatedSeats = React.useMemo(() => {
     const startIndex = SEAT_ORDER.indexOf(mySeat || 'SOUTH');
@@ -499,7 +501,7 @@ export default function GameBoard({
                 <div className="space-y-4 mb-4">
                   {gameState.status === 'GAME_OVER' && (
                     <div className="text-center mb-6 py-4 bg-gold/10 rounded-2xl border border-gold/20">
-                       {gameState.scores.NS.points >= 500 || (gameState.scores.EW.points <= -200 && gameState.scores.NS.points > gameState.scores.EW.points) ? (
+                       {winner === 'NS' ? (
                          <div className="animate-bounce">
                            <span className="text-gold font-bold text-xl uppercase tracking-[0.2em] block">Team 1 Wins!</span>
                            <span className="text-white/60 text-[10px] uppercase font-black tracking-widest">{getTeamNames('NS')}</span>
@@ -514,7 +516,7 @@ export default function GameBoard({
                   )}
 
                   <div className={`flex flex-col p-4 bg-white/5 rounded-2xl border-l-4 transition-all ${
-                    gameState.status === 'GAME_OVER' && (gameState.scores.NS.points >= 500 || (gameState.scores.EW.points <= -200 && gameState.scores.NS.points > gameState.scores.EW.points))
+                    winner === 'NS'
                       ? 'border-gold bg-gold/10 scale-105 shadow-[0_0_30px_rgba(197,160,89,0.2)]' 
                       : 'border-gold'
                   }`}>
@@ -537,7 +539,7 @@ export default function GameBoard({
                     </div>
                   </div>
                   <div className={`flex flex-col p-4 bg-white/5 rounded-2xl border-l-4 transition-all ${
-                    gameState.status === 'GAME_OVER' && (gameState.scores.EW.points >= 500 || (gameState.scores.NS.points <= -200 && gameState.scores.EW.points > gameState.scores.NS.points))
+                    winner === 'EW'
                       ? 'border-gold bg-gold/10 scale-105 shadow-[0_0_30px_rgba(197,160,89,0.2)]'
                       : 'border-white/20'
                   }`}>

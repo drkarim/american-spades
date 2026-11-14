@@ -122,7 +122,7 @@ See [docs/bot-strategy.md](docs/bot-strategy.md) for how to read the output and 
    - 10 bags = -100 pts penalty.
    - Failing to meet the bid = -10 pts per trick bid.
    - **Nil** (a bid of zero): +100 pts if that player takes no tricks, -100 pts if they take any. A Nil bidder's tricks do not count toward their partner's bid.
-4. **Winning**: The game ends when a team reaches 500 points or falls to -200.
+4. **Winning**: The game ends when a team reaches 500 points or falls to -200, and the team with more points wins (even if both passed 500 in the same round). If the scores are tied, another round is played.
 
 ---
 

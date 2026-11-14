@@ -117,5 +117,19 @@ export const applyRoundScores = (
   }
 };
 
-export const isGameOver = (scores: GameState['scores']): boolean =>
-  scores.NS.points >= 500 || scores.EW.points >= 500 || scores.NS.points <= -200 || scores.EW.points <= -200;
+export const WIN_POINTS = 500;
+export const LOSE_POINTS = -200;
+
+/**
+ * The game ends once a team reaches 500 or drops to -200. The team with more
+ * points wins, even if both crossed 500 in the same round. On a tie nobody has
+ * won yet and another round is played.
+ */
+export const getWinner = (scores: GameState['scores']): TeamName | null => {
+  const { NS, EW } = scores;
+  const reachedEnd = [NS.points, EW.points].some(p => p >= WIN_POINTS || p <= LOSE_POINTS);
+  if (!reachedEnd || NS.points === EW.points) return null;
+  return NS.points > EW.points ? 'NS' : 'EW';
+};
+
+export const isGameOver = (scores: GameState['scores']): boolean => getWinner(scores) !== null;
