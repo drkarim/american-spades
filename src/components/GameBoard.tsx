@@ -374,7 +374,34 @@ export default function GameBoard({
             className="absolute inset-0 z-[1000] bg-black/10 flex items-center justify-center p-6"
           >
             <div className="bg-[#0a1a14] border-2 border-gold/40 p-8 rounded-[2rem] shadow-2xl w-full max-w-sm mb-20">
-              <h3 className="text-xl font-serif italic text-center mb-8 text-gold">Place Your Bid</h3>
+              <h3 className="text-xl font-serif italic text-center mb-5 text-gold">Place Your Bid</h3>
+
+              {/* Bids made so far: the dialog covers the table, so repeat them here */}
+              <div className="grid grid-cols-3 gap-2 mb-6">
+                {[rotatedSeats[2], rotatedSeats[3], rotatedSeats[1]].map((seat, i) => {
+                  const isPartner = i === 0;
+                  const bid = gameState.bids[seat];
+                  const name = gameState.players.find(p => p.seat === seat)?.name || seat;
+                  return (
+                    <div
+                      key={seat}
+                      className={`flex flex-col items-center px-2 py-2 rounded-xl border ${isPartner ? 'border-gold/50 bg-gold/10' : 'border-white/10 bg-white/5'}`}
+                    >
+                      <span className={`text-[8px] uppercase tracking-widest font-black ${isPartner ? 'text-gold' : 'text-white/40'}`}>
+                        {isPartner ? 'Partner' : 'Opponent'}
+                      </span>
+                      <span className="text-[10px] text-white/70 truncate max-w-full">{name}</span>
+                      <span className={`text-2xl font-serif italic leading-tight ${bid === null ? 'text-white/20' : isPartner ? 'text-gold' : 'text-white'}`}>
+                        {bid === null ? '–' : bid === 0 ? 'Nil' : bid}
+                      </span>
+                      <span className="text-[8px] uppercase tracking-widest text-white/30">
+                        {bid === null ? 'Yet to bid' : 'Bid'}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
               <div className="grid grid-cols-5 gap-3 mb-8">
                 {Array.from({ length: 14 }).map((_, b) => (
                   <button
