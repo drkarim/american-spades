@@ -14,9 +14,11 @@ A sophisticated, real-time multiplayer implementation of the classic American Sp
 - **Sophisticated Design**: A "Dark Forest" themed UI with radial felt glows, high-contrast typography, and fluid animations.
 - **Team-based Scoring**: Automated score tracking including partnership bids, tricks won, and "bags" (sandbagging) management.
 - **Dynamic Card Sorting**: Intelligent hand organization (Spades → Hearts → Clubs → Diamonds) in descending order for quick strategic assessment.
-- **Bot Support**: Fill empty seats with intelligent AI players that understand complex bidding and gameplay strategies.
+- **Bot Support**: Fill empty seats with bots that count cards, bid from their hand and the table, and protect or attack Nil bids.
+- **Bids in View**: When it is your turn to bid, the dialog shows what your partner and opponents have already bid.
+- **Simulator Mode**: "Simulate 4 Players" on the home screen lets you control all four seats from one browser.
 - **Immersive Animations**: 
-  - Smooth card dealing and playing transitions using `framer-motion`.
+  - Smooth card dealing and playing transitions using `motion`.
   - Trick-winning animations that clear cards toward the winner.
   - Active turn indicators and real-time state synchronization.
 - **Mobile Optimized**: Responsive "App-like" layout that fits perfectly on smartphones and tablets.
@@ -25,21 +27,23 @@ A sophisticated, real-time multiplayer implementation of the classic American Sp
 
 ## 🤖 Bot Intelligence
 
-The game features built-in AI bots that simulate human-like decision-making. You can add bots to any empty seat in the lobby.
+You can add a bot to any empty seat in the lobby. The same bot plays as your partner or as an opponent, and it only uses what a human in its seat could know: its own hand, the bids, the score, and the cards played so far.
 
-### Bidding Strategy
-Bots evaluate their hand strength using a weighted scoring system:
-- **Spade Power**: Length of spade suit contributes to a base bid.
-- **High Cards**: Aces and Kings add significant win probability.
-- **Suit Distribution**: Bots recognize the value of "voids" and "singletons" which allow early trumping.
-- **Minimums**: Bots always bid at least 1 trick (unless they detect a rare Nil opportunity).
+### Bidding
+- **Trick counting**: aces, guarded kings, high spades and spade length are each worth a fraction of a trick; short side suits count only when there are low spades to trump with.
+- **Table awareness**: the last bidder adjusts to the table total, and bids go up slightly when the team is close to a bag penalty.
+- **Nil**: bid on hands with no A, K or Q of spades, few spades, and low cards in every side suit. More likely when behind or when partner bid high; never when partner already bid Nil.
 
-### Gameplay Logic
-The AI adapts its strategy based on the current game state:
-- **Nil Awareness**: Bots play defensively to protect a Nil partner (leading high to clear paths) or aggressively to "set" a Nil opponent (leading low to force them to win).
-- **Bag Management**: If a team has met its bid and is at risk of "sandbagging," the bot will prioritize discarding high cards and losing tricks.
-- **Trump Control**: Bots hold back high spades (the boss cards) until necessary to win critical tricks or follow suit.
-- **Follow Suit Discipline**: Strict adherence to following suit while balancing the need to win the trick versus saving power for later.
+### Card Play
+- **Card memory**: bots track every card played, who is out of which suit, and which cards have become the highest left.
+- **Making the bid**: cash sure winners, draw trumps with long spades, empty short suits to trump later, win as cheaply as possible, and never overtake partner.
+- **Setting opponents**: when they are a trick or two short near the end, take the extra tricks even at the cost of bags.
+- **Bag avoidance**: once the bid is made, duck and throw high cards under someone else's winner.
+- **Protecting a Nil partner**: lead cards partner can get under or suits partner is out of, and cover when partner is exposed.
+- **Playing its own Nil**: stay under the winning card, shedding the biggest safe card.
+- **Attacking an opponent's Nil**: lead low and play under the Nil bidder, unless that would cost the bot's own bid.
+
+The full details, including the numbers behind each decision, are in [docs/bot-strategy.md](docs/bot-strategy.md).
 
 ---
 
@@ -85,6 +89,22 @@ Build the frontend assets and start the server in production mode:
 npm run build
 npm start
 ```
+The server listens on `PORT` (default 3000).
+
+### Deployment
+The app is deployed on Railway from the `main` branch. The `Procfile` starts it with `npm start`, which serves the built frontend from `dist/`.
+
+### Checks
+Type-check the project:
+```bash
+npm run lint
+```
+
+Measure a bot change by playing full games between the current bot and the original one (arguments: number of games, random seed, bot A, bot B):
+```bash
+npm run sim -- 2000 1 new old
+```
+See [docs/bot-strategy.md](docs/bot-strategy.md) for how to read the output and try different settings.
 
 ---
 
@@ -101,6 +121,8 @@ npm start
    - Over-tricks (bags) = 1 pt each.
    - 10 bags = -100 pts penalty.
    - Failing to meet the bid = -10 pts per trick bid.
+   - **Nil** (a bid of zero): +100 pts if that player takes no tricks, -100 pts if they take any. A Nil bidder's tricks do not count toward their partner's bid.
+4. **Winning**: The game ends when a team reaches 500 points or falls to -200.
 
 ---
 
@@ -108,15 +130,25 @@ npm start
 
 ```text
 ├── src/
+│   ├── bot/
+│   │   └── bot.ts           # Bot bidding and card play
 │   ├── components/
-│   │   ├── GameBoard.tsx    # Main game UI and client logic
-│   │   ├── Lobby.tsx        # Room creation and joining
-│   │   └── TrickOutcome.tsx # Scoreboard and post-trick summary
+│   │   ├── GameBoard.tsx    # Table, hand, bid dialog and score summary
+│   │   ├── Lobby.tsx        # Seats, bots and game start
+│   │   └── Sandbox.tsx      # Four-player simulator mode
+│   ├── rules.ts             # Trick resolution, legal plays and scoring
 │   ├── types.ts             # Shared TS interfaces
-│   ├── App.tsx              # Component routing
+│   ├── utils.ts             # Card image helpers
+│   ├── App.tsx              # Home screen and view routing
 │   └── main.tsx             # Entry point
-├── server.ts                # Express backend & Game Engine
-└── package.json             # Build and dependency manifest
+├── scripts/
+│   ├── simulate.ts          # Bot-vs-bot simulator (npm run sim)
+│   └── legacyBot.ts         # Original bot, kept as the simulator baseline
+├── docs/
+│   └── bot-strategy.md      # How the bots bid and play
+├── server.ts                # Express server, rooms and game flow
+├── Procfile                 # Start command for deployment
+└── package.json             # Scripts and dependencies
 ```
 
 ---
