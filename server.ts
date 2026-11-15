@@ -71,7 +71,15 @@ async function startServer() {
     const room = rooms.get(roomCode);
     if (!room || !room.gameState) return;
 
-    applyRoundScores(room.gameState.bids, room.gameState.tricksWon, room.gameState.scores);
+    const gs = room.gameState;
+    const teams = applyRoundScores(gs.bids, gs.tricksWon, gs.scores);
+    gs.roundHistory = gs.roundHistory || [];
+    gs.roundHistory.push({
+      round: gs.roundNumber,
+      bids: { NORTH: gs.bids.NORTH ?? 0, EAST: gs.bids.EAST ?? 0, SOUTH: gs.bids.SOUTH ?? 0, WEST: gs.bids.WEST ?? 0 },
+      tricksWon: { ...gs.tricksWon },
+      teams,
+    });
 
     if (isGameOver(room.gameState.scores)) {
       room.gameState.status = 'GAME_OVER';

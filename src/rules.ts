@@ -1,4 +1,4 @@
-import type { Card, GameState, Rank, Seat, Suit } from './types.ts';
+import type { Card, GameState, Rank, Seat, Suit, TeamRoundResult } from './types.ts';
 
 export type Play = { seat: Seat; card: Card };
 export type TeamName = 'NS' | 'EW';
@@ -70,51 +70,62 @@ export const legalCards = (hand: Card[], leadsWith: Suit | null, spadesBroken: b
   return hand;
 };
 
-/** Adds one round's result to `scores` (mutates it). */
+/**
+ * Adds one round's result to `scores` (mutates it) and returns how each
+ * team's score changed, for the end-of-round breakdown and the ledger.
+ */
 export const applyRoundScores = (
   bids: GameState['bids'],
   tricksWon: GameState['tricksWon'],
   scores: GameState['scores'],
-): void => {
+): Record<TeamName, TeamRoundResult> => {
+  const results = {} as Record<TeamName, TeamRoundResult>;
+
   for (const name of ['NS', 'EW'] as const) {
-    let roundPoints = 0;
-    let roundBags = 0;
-    let nonNilBid = 0;
-    let nonNilWon = 0;
+    const nils: TeamRoundResult['nils'] = [];
+    let nilPoints = 0;
+    let nilBags = 0;
+    let bid = 0;
+    let won = 0;
 
     for (const seat of TEAM_SEATS[name]) {
-      const bid = bids[seat];
-      const won = tricksWon[seat];
-      if (bid === 0) {
-        if (won === 0) {
-          roundPoints += 100;
-        } else {
-          roundPoints -= 100;
-          roundBags += won;
-        }
+      const seatBid = bids[seat];
+      const seatWon = tricksWon[seat];
+      if (seatBid === 0) {
+        const made = seatWon === 0;
+        nils.push({ seat, made, tricks: seatWon });
+        nilPoints += made ? 100 : -100;
+        nilBags += seatWon;
       } else {
-        nonNilBid += bid || 0;
-        nonNilWon += won;
+        bid += seatBid || 0;
+        won += seatWon;
       }
     }
 
-    if (nonNilBid > 0) {
-      if (nonNilWon >= nonNilBid) {
-        roundPoints += nonNilBid * 10;
-        roundBags += nonNilWon - nonNilBid;
-      } else {
-        roundPoints -= nonNilBid * 10;
-      }
-    }
+    const made = bid > 0 ? won >= bid : null;
+    const bidPoints = made === null ? 0 : made ? bid * 10 : -bid * 10;
+    const overtricks = made ? won - bid : 0;
+    const bagsGained = overtricks + nilBags;
 
-    scores[name].points += roundPoints;
-    scores[name].bags += roundBags;
+    scores[name].points += bidPoints + nilPoints;
+    scores[name].bags += bagsGained;
 
+    let bagPenalty = 0;
     while (scores[name].bags >= 10) {
       scores[name].points -= 100;
       scores[name].bags -= 10;
+      bagPenalty -= 100;
     }
+
+    results[name] = {
+      bid, won, made, bidPoints, overtricks, nils, nilPoints, bagsGained, bagPenalty,
+      change: bidPoints + nilPoints + bagPenalty,
+      points: scores[name].points,
+      bags: scores[name].bags,
+    };
   }
+
+  return results;
 };
 
 export const WIN_POINTS = 500;

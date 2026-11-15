@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { GameState, Card, Seat } from '../types';
 import { getCardImage } from '../utils';
 import { getWinner } from '../rules';
+import { RoundBreakdown, ScoreHistory } from './ScoreLedger';
 import { motion, AnimatePresence } from 'motion/react';
-import { Info, Trophy, AlertCircle, Eye, Play, X, UserMinus, Bot } from 'lucide-react';
+import { Info, Trophy, AlertCircle, Eye, Play, X, UserMinus, Bot, ScrollText } from 'lucide-react';
 
 interface GameBoardProps {
   gameState: GameState;
@@ -35,10 +36,16 @@ export default function GameBoard({
   const [selectedBid, setSelectedBid] = useState<number | null>(null);
   const [showScoreSummary, setShowScoreSummary] = useState(false);
   const [showLastTrick, setShowLastTrick] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const [focusedCard, setFocusedCard] = useState<string | null>(null);
 
   const isAdmin = myId === adminId;
   const winner = gameState.status === 'GAME_OVER' ? getWinner(gameState.scores) : null;
+  const roundHistory = gameState.roundHistory || [];
+  // The round that just finished, shown on the end-of-round screen.
+  const lastRound = (gameState.status === 'ROUND_END' || gameState.status === 'GAME_OVER') && roundHistory.length > 0
+    ? roundHistory[roundHistory.length - 1]
+    : null;
 
   const rotatedSeats = React.useMemo(() => {
     const startIndex = SEAT_ORDER.indexOf(mySeat || 'SOUTH');
@@ -104,23 +111,23 @@ export default function GameBoard({
   return (
     <div className="relative w-full h-[100dvh] bg-deep-black overflow-hidden flex flex-col font-sans">
       {/* Sophisticated Header */}
-      <header className="h-16 px-6 flex items-center justify-between border-b border-white/10 bg-[#0a1a14] z-50">
-        <div className="flex items-center gap-6">
-          <h1 className="text-xl font-serif italic text-gold">Karim’s Clubhouse Spades</h1>
-          <div className="flex items-center gap-2 bg-black/40 px-3 py-1 rounded border border-gold/30">
-            <span className="text-[9px] uppercase tracking-widest text-white/50">Room Code</span>
+      <header className="h-16 px-3 sm:px-6 flex items-center justify-between gap-2 border-b border-white/10 bg-[#0a1a14] z-50">
+        <div className="flex items-center gap-3 sm:gap-6 min-w-0">
+          <h1 className="hidden sm:block text-xl font-serif italic text-gold truncate">Karim’s Clubhouse Spades</h1>
+          <div className="flex items-center gap-2 bg-black/40 px-2 sm:px-3 py-1 rounded border border-gold/30 shrink-0">
+            <span className="text-[9px] uppercase tracking-widest text-white/50">Room<span className="hidden sm:inline"> Code</span></span>
             <span className="font-mono font-bold text-gold text-xs">{gameState.roomCode}</span>
           </div>
         </div>
         
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4 shrink-0">
           <AnimatePresence>
             {isMyTurn && gameState.status !== 'ROUND_END' && (
               <motion.div 
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 20 }}
-                className="bg-red-900/20 border border-red-500/50 px-4 py-1 rounded-full animate-pulse flex items-center gap-2"
+                className="bg-red-900/20 border border-red-500/50 px-2.5 sm:px-4 py-1 rounded-full animate-pulse flex items-center gap-2 whitespace-nowrap"
               >
                 <div className="w-1.5 h-1.5 bg-red-400 rounded-full" />
                 <span className="text-[10px] font-bold text-red-400 uppercase tracking-tighter">Your Turn</span>
@@ -135,7 +142,15 @@ export default function GameBoard({
           >
             <Eye className="w-4 h-4 text-white/60" />
           </button>
-          <button onClick={() => setShowScoreSummary(true)} className="p-2 border border-white/20 rounded hover:bg-white/5 transition-colors">
+          <button
+            onClick={() => setShowHistory(true)}
+            className="p-2 border border-white/20 rounded hover:bg-white/5 transition-colors"
+            title="Score History"
+            aria-label="Score history"
+          >
+            <ScrollText className="w-4 h-4 text-white/60" />
+          </button>
+          <button onClick={() => setShowScoreSummary(true)} className="p-2 border border-white/20 rounded hover:bg-white/5 transition-colors" title="Game Stats" aria-label="Game stats">
             <Info className="w-4 h-4 text-white/60" />
           </button>
         </div>
@@ -470,14 +485,14 @@ export default function GameBoard({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 z-[2000] bg-black/90 backdrop-blur flex items-center justify-center p-6"
+            className="absolute inset-0 z-[2000] bg-black/90 backdrop-blur flex items-center justify-center p-3 sm:p-6"
           >
             <motion.div
               initial={{ scale: 0.95, y: 20 }}
               animate={{ scale: 1, y: 0 }}
-              className="bg-[#0a1a14] w-full max-w-sm rounded-[2.5rem] border-4 border-gold/30 p-8 shadow-2xl"
+              className="bg-[#0a1a14] w-full max-w-sm max-h-full overflow-y-auto rounded-[2rem] border-4 border-gold/30 p-5 sm:p-8 shadow-2xl"
             >
-               <div className="text-center mb-8">
+               <div className="text-center mb-5">
                   {gameState.status === 'GAME_OVER' ? (
                     <motion.div
                       initial={{ scale: 0 }}
@@ -534,9 +549,15 @@ export default function GameBoard({
                     <div className="flex justify-end items-center mt-2 pt-2 border-t border-white/5">
                         <div className="text-right">
                            <div className="text-2xl font-serif italic text-gold">{gameState.scores.NS.points}</div>
-                           <div className="text-[9px] uppercase text-white/30 tracking-widest">Bags: {gameState.scores.NS.bags}</div>
+                           <div className="text-[11px] uppercase text-white/50 tracking-widest">Bags: {gameState.scores.NS.bags} / 10</div>
                         </div>
                     </div>
+                    {lastRound && (
+                      <div className="mt-3 pt-3 border-t border-white/10">
+                        <div className="text-[11px] font-bold uppercase tracking-widest text-white/50 mb-2">Round {lastRound.round}</div>
+                        <RoundBreakdown result={lastRound.teams.NS} players={gameState.players} />
+                      </div>
+                    )}
                   </div>
                   <div className={`flex flex-col p-4 bg-white/5 rounded-2xl border-l-4 transition-all ${
                     winner === 'EW'
@@ -557,15 +578,29 @@ export default function GameBoard({
                     <div className="flex justify-end items-center mt-2 pt-2 border-t border-white/5">
                         <div className="text-right">
                            <div className="text-2xl font-serif italic">{gameState.scores.EW.points}</div>
-                           <div className="text-[9px] uppercase text-white/30 tracking-widest">Bags: {gameState.scores.EW.bags}</div>
+                           <div className="text-[11px] uppercase text-white/50 tracking-widest">Bags: {gameState.scores.EW.bags} / 10</div>
                         </div>
                     </div>
+                    {lastRound && (
+                      <div className="mt-3 pt-3 border-t border-white/10">
+                        <div className="text-[11px] font-bold uppercase tracking-widest text-white/50 mb-2">Round {lastRound.round}</div>
+                        <RoundBreakdown result={lastRound.teams.EW} players={gameState.players} />
+                      </div>
+                    )}
                   </div>
                </div>
 
+               <button
+                 onClick={() => setShowHistory(true)}
+                 className="w-full mb-3 py-3 bg-white/5 hover:bg-white/10 border border-white/15 rounded-xl text-white/90 font-bold uppercase tracking-widest text-sm flex items-center justify-center gap-2 transition-colors"
+               >
+                 <ScrollText className="w-4 h-4" />
+                 Score History
+               </button>
+
                {gameState.status === 'ROUND_END' ? (
                  <button
-                   onClick={onNextRound}
+                   onClick={() => { setShowScoreSummary(false); onNextRound(); }}
                    className="w-full bg-gold text-black py-5 rounded-2xl font-bold text-xl hover:bg-gold/90 transition-all uppercase tracking-widest"
                  >
                    Continue
@@ -590,6 +625,15 @@ export default function GameBoard({
                )}
             </motion.div>
           </motion.div>
+        )}
+
+        {showHistory && (
+          <ScoreHistory
+            history={roundHistory}
+            players={gameState.players}
+            teamNames={{ NS: getTeamNames('NS'), EW: getTeamNames('EW') }}
+            onClose={() => setShowHistory(false)}
+          />
         )}
       </AnimatePresence>
     </div>
