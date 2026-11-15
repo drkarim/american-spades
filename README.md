@@ -118,7 +118,7 @@ See [docs/bot-strategy.md](docs/bot-strategy.md) for how to read the output and 
    - Spades cannot be "led" until the suit is broken (a spade is played on a previous lead).
 3. **Scoring**:
    - Meeting the bid = 10 pts per trick bid.
-   - Over-tricks (bags) = 1 pt each.
+   - Over-tricks (bags) score no points; each one adds a bag.
    - 10 bags = -100 pts penalty.
    - Failing to meet the bid = -10 pts per trick bid.
    - **Nil** (a bid of zero): +100 pts if that player takes no tricks, -100 pts if they take any. A Nil bidder's tricks do not count toward their partner's bid.
